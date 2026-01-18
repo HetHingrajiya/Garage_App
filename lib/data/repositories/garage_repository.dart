@@ -21,10 +21,23 @@ class GarageRepository {
   GarageRepository(this._firestore);
 
   // --- Customers ---
-  Stream<List<Customer>> getCustomers() {
-    return _firestore.collection('customers').snapshots().map((snapshot) {
+  /// Get customers with optional filtering by admin
+  /// If adminId is null, returns all customers (for super admin)
+  /// If adminId is provided, returns only customers created by that admin
+  Stream<List<Customer>> getCustomers({String? createdByAdminId}) {
+    Query query = _firestore.collection('customers');
+
+    // Filter by admin if specified (not super admin)
+    if (createdByAdminId != null) {
+      query = query.where('createdByAdminId', isEqualTo: createdByAdminId);
+    }
+
+    return query.snapshots().map((snapshot) {
       return snapshot.docs
-          .map((doc) => Customer.fromMap(doc.data(), doc.id))
+          .map(
+            (doc) =>
+                Customer.fromMap(doc.data() as Map<String, dynamic>, doc.id),
+          )
           .where((c) => c.status == 'Active')
           .toList();
     });

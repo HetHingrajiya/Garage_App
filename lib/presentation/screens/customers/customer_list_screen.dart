@@ -1,6 +1,7 @@
 import 'package:autocare_pro/core/permissions/permissions.dart';
 import 'package:autocare_pro/data/models/customer_model.dart';
 import 'package:autocare_pro/data/repositories/garage_repository.dart';
+import 'package:autocare_pro/presentation/providers/filtered_data_providers.dart';
 import 'package:autocare_pro/presentation/screens/customers/add_customer_screen.dart';
 import 'package:autocare_pro/presentation/widgets/permission_widget.dart';
 import 'package:flutter/material.dart';
@@ -22,9 +23,26 @@ final searchQueryProvider = NotifierProvider<SearchQueryNotifier, String>(() {
   return SearchQueryNotifier();
 });
 
-final customerListProvider = StreamProvider<List<Customer>>((ref) {
-  final query = ref.watch(searchQueryProvider);
-  return ref.watch(garageRepositoryProvider).searchCustomers(query);
+// Updated to use filtered customers with search
+final customerListProvider = Provider<AsyncValue<List<Customer>>>((ref) {
+  final query = ref.watch(searchQueryProvider).toLowerCase();
+  final customersAsync = ref.watch(filteredCustomersProvider);
+
+  return customersAsync.when(
+    data: (customers) {
+      if (query.isEmpty) return AsyncValue.data(customers);
+
+      final filtered = customers.where((c) {
+        return c.name.toLowerCase().contains(query) ||
+            (c.mobile?.contains(query) ?? false) ||
+            (c.email.toLowerCase().contains(query));
+      }).toList();
+
+      return AsyncValue.data(filtered);
+    },
+    loading: () => const AsyncValue.loading(),
+    error: (err, stack) => AsyncValue.error(err, stack),
+  );
 });
 
 class CustomerListScreen extends ConsumerWidget {

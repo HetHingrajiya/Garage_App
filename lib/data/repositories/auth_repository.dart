@@ -136,6 +136,8 @@ class AuthRepository {
           vehicleIds: [],
           hasAuthAccount: true, // Self-registered customer can login
           createdBy: 'self',
+          createdByAdminId:
+              'CUKi8teMcvRobO1m2GPhcZlQfP92', // Assign to Super Admin by default
         );
         await _firestore.collection('customers').doc(uid).set(customer.toMap());
         debugPrint('✅ Customer saved to Firestore');

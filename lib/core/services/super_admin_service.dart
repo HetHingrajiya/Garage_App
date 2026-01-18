@@ -19,6 +19,65 @@ class SuperAdminService {
   /// Initialize default super admin account
   /// This should be called once when the app first starts
   Future<void> initializeSuperAdmin() async {
+    final currentUser = _auth.currentUser;
+
+    // 1. If usage is logged in, check if it's super admin and needs repair
+    if (currentUser != null) {
+      try {
+        if (currentUser.email == defaultSuperAdminEmail) {
+          debugPrint('Super admin logged in. Verifying Firestore data...');
+          final adminDoc = await _firestore
+              .collection('admins')
+              .doc(currentUser.uid)
+              .get();
+          final userDoc = await _firestore
+              .collection('users')
+              .doc(currentUser.uid)
+              .get();
+
+          // Check if either is missing or invalid
+          final adminMissing = !adminDoc.exists;
+          final userMissing = !userDoc.exists;
+
+          if (adminMissing || userMissing) {
+            debugPrint(
+              '⚠️ Super Admin data incomplete (Admin: ${!adminMissing}, User: ${!userMissing}). Repairing...',
+            );
+            final superAdmin = AdminModel(
+              id: currentUser.uid,
+              email: currentUser.email!,
+              name: 'Super Admin',
+              createdAt: DateTime.now(),
+              permissions: ['all'],
+              isSuperAdmin: true,
+              status: 'Active',
+              mobile: '+919876543210',
+            );
+
+            await _firestore
+                .collection('admins')
+                .doc(currentUser.uid)
+                .set(superAdmin.toMap());
+            await _firestore
+                .collection('users')
+                .doc(currentUser.uid)
+                .set(superAdmin.toMap());
+            debugPrint('✅ Super Admin data repaired.');
+          } else {
+            debugPrint('✅ Super Admin data is intact.');
+          }
+        }
+      } catch (e) {
+        if (e.toString().contains('permission-denied')) {
+          debugPrint(
+            '🚨 CRITICAL: Firestore Security Rules BLOCKING access. Please update rules in Firebase Console via docs/FIX_PERMISSION_ERROR.md',
+          );
+        }
+        debugPrint('❌ Error checking/repairing super admin: $e');
+      }
+      return;
+    }
+
     try {
       // Try to sign in first to check if account exists
       UserCredential? userCredential;
@@ -118,6 +177,32 @@ class SuperAdminService {
   Future<bool> canDeleteAdmin(String adminId) async {
     final isSuperAdminUser = await isSuperAdmin(adminId);
     return !isSuperAdminUser; // Cannot delete any super admin
+  }
+
+  /// Assign orphaned customers (self-registered) to super admin
+  Future<int> fixOrphanedCustomers(String adminId) async {
+    try {
+      final snapshot = await _firestore
+          .collection('customers')
+          .where('createdByAdminId', isNull: true)
+          .where('createdBy', isEqualTo: 'self')
+          .get();
+
+      int count = 0;
+      final batch = _firestore.batch();
+
+      for (final doc in snapshot.docs) {
+        batch.update(doc.reference, {'createdByAdminId': adminId});
+        count++;
+      }
+
+      if (count > 0) await batch.commit();
+      debugPrint('Fixed $count orphaned customers');
+      return count;
+    } catch (e) {
+      debugPrint('Error fixing orphans: $e');
+      return 0;
+    }
   }
 
   /// Get super admin email

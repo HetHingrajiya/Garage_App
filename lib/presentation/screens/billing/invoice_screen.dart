@@ -99,10 +99,40 @@ class _InvoiceScreenState extends ConsumerState<InvoiceScreen> {
         ).showSnackBar(const SnackBar(content: Text('Invoice Generated')));
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+      // Check if error is due to existing invoice
+      if (e.toString().contains('Invoice already exists')) {
+        // Fetch the existing invoice and display it
+        try {
+          final invoices = await ref
+              .read(garageRepositoryProvider)
+              .getInvoices(jobId: _invoice.jobCardId)
+              .first;
+
+          if (invoices.isNotEmpty && mounted) {
+            setState(() {
+              _invoice = invoices.first;
+              _isGenerated = true;
+            });
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Loaded existing invoice'),
+                backgroundColor: Colors.orange,
+              ),
+            );
+          }
+        } catch (fetchError) {
+          if (mounted) {
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text('Error: $fetchError')));
+          }
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Error: $e')));
+        }
       }
     }
   }

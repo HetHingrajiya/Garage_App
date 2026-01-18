@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:autocare_pro/data/models/customer_model.dart';
 import 'package:autocare_pro/data/repositories/garage_repository.dart';
 import 'package:autocare_pro/data/repositories/auth_repository.dart';
+import 'package:autocare_pro/core/utils/data_filter_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -97,6 +98,7 @@ class _AddCustomerScreenState extends ConsumerState<AddCustomerScreen> {
     try {
       if (isEdit) {
         // --- Edit Mode ---
+        final currentAdminId = ref.read(currentUserIdProvider);
         final customer = Customer(
           id: customerId,
           email: email,
@@ -113,7 +115,7 @@ class _AddCustomerScreenState extends ConsumerState<AddCustomerScreen> {
           vehicleIds: widget.customer!.vehicleIds,
           hasAuthAccount: true,
           createdBy: 'admin',
-          createdByAdminId: null,
+          createdByAdminId: widget.customer!.createdByAdminId ?? currentAdminId,
         );
 
         await ref.read(garageRepositoryProvider).updateCustomer(customer);
@@ -150,6 +152,7 @@ class _AddCustomerScreenState extends ConsumerState<AddCustomerScreen> {
         }
 
         // 2. Prepare Customer Object with Correct ID
+        final currentAdminId = ref.read(currentUserIdProvider);
         final customer = Customer(
           id: customerId,
           email: email,
@@ -166,7 +169,7 @@ class _AddCustomerScreenState extends ConsumerState<AddCustomerScreen> {
           vehicleIds: [], // Will be updated by transaction if adding vehicle
           hasAuthAccount: true,
           createdBy: 'admin',
-          createdByAdminId: null,
+          createdByAdminId: currentAdminId,
         );
 
         // 3. Save Data

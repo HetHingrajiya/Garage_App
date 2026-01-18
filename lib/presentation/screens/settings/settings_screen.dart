@@ -1,11 +1,12 @@
+import 'package:autocare_pro/core/services/data_clear_service.dart';
+import 'package:autocare_pro/core/services/super_admin_service.dart';
+import 'package:autocare_pro/core/utils/data_filter_helper.dart';
 import 'package:autocare_pro/data/models/settings_model.dart';
+import 'package:autocare_pro/data/repositories/auth_repository.dart';
 import 'package:autocare_pro/data/repositories/garage_repository.dart';
-import 'package:autocare_pro/core/utils/database_cleanup.dart';
-import 'package:autocare_pro/core/permissions/permissions.dart';
-import 'package:autocare_pro/presentation/widgets/permission_widget.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 final settingsProvider = FutureProvider<GarageSettings>((ref) {
   return ref.watch(garageRepositoryProvider).getSettings();
@@ -41,6 +42,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
   @override
   Widget build(BuildContext context) {
     final settingsAsync = ref.watch(settingsProvider);
+    final isSuperAdmin = ref.watch(isSuperAdminProvider).asData?.value ?? false;
 
     // Initialize controllers with data once loaded
     settingsAsync.whenData((settings) {
@@ -75,7 +77,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
       body: settingsAsync.when(
         data: (settings) => TabBarView(
           controller: _tabController,
-          children: [_buildProfileTab(), _buildTaxTab(), _buildPrefsTab()],
+          children: [
+            _buildProfileTab(),
+            _buildTaxTab(),
+            _buildPrefsTab(isSuperAdmin),
+          ],
         ),
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, s) => Center(child: Text('Error loading settings: $e')),
@@ -148,7 +154,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
     );
   }
 
-  Widget _buildPrefsTab() {
+  Widget _buildPrefsTab(bool isSuperAdmin) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -182,28 +188,85 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
             onTap: () => setState(() => _themeMode = 'dark'),
           ),
           const Divider(),
+          // Data Management Section
+          if (isSuperAdmin) ...[
+            const Padding(
+              padding: EdgeInsets.only(left: 16, top: 16, bottom: 8),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Super Admin Controls',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.red,
+                  ),
+                ),
+              ),
+            ),
+            ListTile(
+              title: const Text(
+                'Fix Orphaned Customers',
+                style: TextStyle(color: Colors.orange),
+              ),
+              leading: const Icon(Icons.group_add, color: Colors.orange),
+              subtitle: const Text(
+                'Assign existing self-registered users to me',
+              ),
+              onTap: () async {
+                final userId = ref.read(currentUserIdProvider);
+                if (userId != null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Fixing orphans...')),
+                  );
+                  final count = await ref
+                      .read(superAdminServiceProvider)
+                      .fixOrphanedCustomers(userId);
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'Fixed $count customers. Please refresh list.',
+                        ),
+                      ),
+                    );
+                  }
+                }
+              },
+            ),
+            ListTile(
+              title: const Text(
+                'Factory Reset',
+                style: TextStyle(
+                  color: Colors.red,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              subtitle: const Text(
+                'Delete ALL data except your account',
+                style: TextStyle(color: Colors.red),
+              ),
+              leading: const Icon(Icons.delete_forever, color: Colors.red),
+              onTap: () => _showCleanupDialog(),
+            ),
+          ],
           ListTile(
             title: const Text('Backup Data'),
-            subtitle: const Text('Export all garage data'),
-            trailing: const Icon(Icons.cloud_download),
+            leading: const Icon(Icons.cloud_download),
             onTap: () {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('Backup feature is coming soon!')),
               );
             },
           ),
-          // Super Admin only - Clear Database
-          PermissionBuilder(
-            permission: Permission.createAdmins,
-            child: ListTile(
-              title: const Text(
-                'Clear Database',
-                style: TextStyle(color: Colors.red),
-              ),
-              subtitle: const Text('Delete all data (except inventory)'),
-              trailing: const Icon(Icons.delete_forever, color: Colors.red),
-              onTap: () => _showCleanupDialog(),
-            ),
+
+          const SizedBox(height: 24),
+          ListTile(
+            title: const Text('Logout'),
+            leading: const Icon(Icons.logout),
+            onTap: () async {
+              await ref.read(authRepositoryProvider).signOut();
+              if (mounted) context.go('/login');
+            },
           ),
         ],
       ),
@@ -247,33 +310,38 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('⚠️ Clear Database?'),
-        content: const Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'This will permanently delete:',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 8),
-            Text('• All admins'),
-            Text('• All mechanics'),
-            Text('• All customers'),
-            Text('• All job cards'),
-            Text('• All vehicles'),
-            Text('• All invoices'),
-            SizedBox(height: 12),
-            Text(
-              '✅ Inventory will be kept',
-              style: TextStyle(color: Colors.green),
-            ),
-            SizedBox(height: 12),
-            Text(
-              'This action cannot be undone!',
-              style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
-            ),
-          ],
+        title: const Text(
+          '⚠️ FACTORY RESET?',
+          style: TextStyle(color: Colors.red),
+        ),
+        content: const SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'This action is IRREVERSIBLE!',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.red,
+                ),
+              ),
+              SizedBox(height: 12),
+              Text('This will PERMANENTLY DELETE:'),
+              Text('• All customers and users'),
+              Text('• All vehicles and jobs'),
+              Text('• All invoices and payments'),
+              Text('• All inventory and parts'),
+              Text('• All other admins'),
+              SizedBox(height: 12),
+              Text(
+                'Only YOUR Super Admin account will remain.',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 16),
+              Text('Are you absolutely sure?'),
+            ],
+          ),
         ),
         actions: [
           TextButton(
@@ -286,7 +354,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
               backgroundColor: Colors.red,
               foregroundColor: Colors.white,
             ),
-            child: const Text('Delete All'),
+            child: const Text('DELETE EVERYTHING'),
           ),
         ],
       ),
@@ -306,25 +374,44 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            CircularProgressIndicator(),
+            CircularProgressIndicator(color: Colors.red),
             SizedBox(height: 16),
-            Text('Cleaning database...'),
+            Text('Wiping System Data...'),
+            Text('Please wait...', style: TextStyle(fontSize: 12)),
           ],
         ),
       ),
     );
 
     try {
-      final cleanup = DatabaseCleanup(FirebaseFirestore.instance);
+      final currentUserId = ref.read(currentUserIdProvider);
+      if (currentUserId == null) throw Exception('User not logged in');
 
-      await cleanup.cleanAll(keepInventory: true);
+      final dbCleanup = DataClearService();
+      await dbCleanup.clearAllSystemData(currentUserId);
 
       if (mounted) {
         Navigator.pop(context); // Close loading dialog
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('✅ Database cleaned successfully!'),
-            backgroundColor: Colors.green,
+
+        // Show success dialog
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('✅ Reset Complete'),
+            content: const Text(
+              'All system data has been cleared.\n\nPlease log in again to ensure a clean state.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () async {
+                  Navigator.pop(context);
+                  // Navigate to login or logout
+                  await ref.read(authRepositoryProvider).signOut();
+                  if (context.mounted) context.go('/login');
+                },
+                child: const Text('OK'),
+              ),
+            ],
           ),
         );
       }

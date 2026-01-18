@@ -2,6 +2,7 @@ import 'package:autocare_pro/core/permissions/permissions.dart';
 import 'package:autocare_pro/data/models/inventory_model.dart';
 import 'package:autocare_pro/data/repositories/garage_repository.dart';
 import 'package:autocare_pro/presentation/screens/inventory/add_spare_part_screen.dart';
+import 'package:autocare_pro/presentation/screens/inventory/auto_parts_search_screen.dart';
 import 'package:autocare_pro/presentation/widgets/permission_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -70,6 +71,21 @@ class InventoryListScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Inventory'),
+        actions: [
+          PermissionBuilder(
+            permission: Permission.manageInventory,
+            child: IconButton(
+              icon: const Icon(Icons.cloud_download),
+              tooltip: 'Search Catalog',
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const AutoPartsSearchScreen(),
+                ),
+              ),
+            ),
+          ),
+        ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(100),
           child: Column(

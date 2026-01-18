@@ -30,23 +30,55 @@ final customerActiveJobsProvider = StreamProvider<List<Map<String, dynamic>>>((
 
 // Provider for customer's recent invoices
 final customerRecentInvoicesProvider =
-    StreamProvider<List<Map<String, dynamic>>>((ref) {
-      final user = ref.watch(authRepositoryProvider).currentUser;
-      if (user == null) return Stream.value([]);
+    StreamProvider<List<Map<String, dynamic>>>((ref) async* {
+      final user = ref.watch(authStateProvider).value;
+      if (user == null) {
+        yield [];
+        return;
+      }
 
-      return FirebaseFirestore.instance
-          .collection('invoices')
-          .where('customerId', isEqualTo: user.uid)
-          .orderBy('createdAt', descending: true)
-          .limit(3)
-          .snapshots()
-          .map((snapshot) {
-            return snapshot.docs.map((doc) {
-              final data = doc.data();
-              data['id'] = doc.id;
-              return data;
-            }).toList();
-          });
+      // Get all job cards for this customer
+      final jobCardsStream = ref.watch(garageRepositoryProvider).getJobCards();
+
+      await for (final allJobs in jobCardsStream) {
+        // Filter jobs belonging to this customer
+        final customerJobs = allJobs
+            .where((job) => job.customerId == user.uid)
+            .toList();
+
+        if (customerJobs.isEmpty) {
+          yield [];
+          continue;
+        }
+
+        // Get invoices for all customer's jobs
+        final List<Map<String, dynamic>> customerInvoices = [];
+
+        for (final job in customerJobs) {
+          final invoicesStream = ref
+              .watch(garageRepositoryProvider)
+              .getInvoices(jobId: job.id);
+          await for (final invoices in invoicesStream) {
+            for (final invoice in invoices) {
+              customerInvoices.add({
+                'id': invoice.id,
+                'invoiceNumber': invoice.invoiceNumber,
+                'total': invoice.total,
+                'paymentStatus': invoice.paymentStatus,
+                'date': invoice.date,
+                'items': invoice.items.length,
+              });
+            }
+            break; // Take first emission for each job
+          }
+        }
+
+        // Sort by date descending and limit to 3
+        customerInvoices.sort(
+          (a, b) => (b['date'] as DateTime).compareTo(a['date'] as DateTime),
+        );
+        yield customerInvoices.take(3).toList();
+      }
     });
 
 class CustomerDashboardScreen extends ConsumerWidget {
@@ -329,9 +361,12 @@ class CustomerDashboardScreen extends ConsumerWidget {
                 return Column(
                   children: invoices.map((invoice) {
                     final total = (invoice['total'] ?? 0.0).toDouble();
-                    final paid = (invoice['paid'] ?? 0.0).toDouble();
-                    final isPaid = paid >= total;
-                    final invoiceId = invoice['id'] as String;
+                    final paymentStatus =
+                        invoice['paymentStatus'] as String? ?? 'Pending';
+                    final isPaid = paymentStatus == 'Paid';
+                    final invoiceNumber =
+                        invoice['invoiceNumber'] as String? ?? 'N/A';
+                    final date = invoice['date'] as DateTime?;
 
                     return Card(
                       margin: const EdgeInsets.only(bottom: 8),
@@ -347,15 +382,28 @@ class CustomerDashboardScreen extends ConsumerWidget {
                           ),
                         ),
                         title: Text(
-                          '#${invoiceId.substring(0, 8).toUpperCase()}',
+                          invoiceNumber,
                           style: const TextStyle(fontWeight: FontWeight.w600),
                         ),
-                        subtitle: Text(
-                          isPaid ? 'Paid' : 'Pending',
-                          style: TextStyle(
-                            color: isPaid ? Colors.green : Colors.orange,
-                            fontSize: 12,
-                          ),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              paymentStatus,
+                              style: TextStyle(
+                                color: isPaid ? Colors.green : Colors.orange,
+                                fontSize: 12,
+                              ),
+                            ),
+                            if (date != null)
+                              Text(
+                                DateFormat('MMM dd, yyyy').format(date),
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                          ],
                         ),
                         trailing: Text(
                           '₹${total.toStringAsFixed(2)}',
@@ -364,6 +412,7 @@ class CustomerDashboardScreen extends ConsumerWidget {
                             fontSize: 14,
                           ),
                         ),
+                        onTap: () => context.push('/customer/invoices'),
                       ),
                     );
                   }).toList(),
