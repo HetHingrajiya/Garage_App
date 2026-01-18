@@ -208,5 +208,17 @@ flutter test
 
 ---
 
+## 7. 📁 Project Reports & Resources
+
+Useful technical reports and scripts generated during development:
+
+*   **[Command Cheat Sheet](./COMMANDS.md)** (Essential CLI commands)
+*   **[Analysis Report](./ANALYSIS_REPORT.md)** (Initial codebase health check)
+*   **[Fix Summary](./FINAL_FIX_SUMMARY.md)** (Details of 74+ issues resolved)
+*   **[Opacity Fix Script](./fix_with_opacity.py)** (Python automation script)
+*   **[Architecture Docs](./ARCHITECTURE_DOCUMENTATION.md)** (Deep technical dive)
+
+---
+
 **End of Documentation**  
 *For further assistance, please contact the development team lead.*
