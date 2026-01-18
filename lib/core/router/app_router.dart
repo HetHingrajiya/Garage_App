@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:autocare_pro/data/repositories/auth_repository.dart';
+import 'package:autocare_pro/data/models/mechanic_model.dart';
 import 'package:autocare_pro/presentation/screens/auth/login_screen.dart';
 import 'package:autocare_pro/presentation/screens/customers/add_customer_screen.dart';
 import 'package:autocare_pro/presentation/screens/customers/customer_list_screen.dart';
@@ -7,6 +10,14 @@ import 'package:autocare_pro/presentation/screens/dashboard/dashboard_screen.dar
 import 'package:autocare_pro/presentation/screens/job_cards/add_job_card_screen.dart';
 import 'package:autocare_pro/presentation/screens/job_cards/job_card_list_screen.dart';
 import 'package:autocare_pro/presentation/screens/vehicles/vehicle_list_screen.dart';
+import 'package:autocare_pro/presentation/screens/settings/settings_screen.dart';
+import 'package:autocare_pro/presentation/screens/inventory/inventory_list_screen.dart';
+import 'package:autocare_pro/presentation/screens/mechanics/mechanics_list_screen.dart';
+import 'package:autocare_pro/presentation/screens/mechanics/add_mechanic_screen.dart';
+import 'package:autocare_pro/presentation/screens/admin/add_user_screen.dart';
+import 'package:autocare_pro/presentation/screens/admin/admin_booking_list_screen.dart';
+
+// Customer Screens
 import 'package:autocare_pro/presentation/screens/customer/customer_dashboard_screen.dart';
 import 'package:autocare_pro/presentation/screens/customer/profile/customer_profile_screen.dart';
 import 'package:autocare_pro/presentation/screens/customer/profile/edit_profile_screen.dart';
@@ -18,14 +29,6 @@ import 'package:autocare_pro/presentation/screens/customer/booking/book_service_
 import 'package:autocare_pro/presentation/screens/customer/jobs/customer_jobs_screen.dart';
 import 'package:autocare_pro/presentation/screens/customer/jobs/customer_job_detail_screen.dart';
 import 'package:autocare_pro/presentation/screens/customer/invoices/customer_invoices_screen.dart';
-import 'package:autocare_pro/presentation/screens/settings/settings_screen.dart';
-import 'package:autocare_pro/presentation/screens/inventory/inventory_list_screen.dart';
-import 'package:autocare_pro/presentation/screens/mechanics/mechanics_list_screen.dart';
-import 'package:autocare_pro/presentation/screens/mechanics/add_mechanic_screen.dart';
-import 'package:autocare_pro/presentation/screens/admin/add_user_screen.dart';
-import 'package:autocare_pro/data/models/mechanic_model.dart';
-import 'package:go_router/go_router.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authStateProvider);
@@ -36,7 +39,6 @@ final routerProvider = Provider<GoRouter>((ref) {
     redirect: (context, state) {
       final isLoggedIn = authState.value != null;
       final isLoggingIn = state.uri.toString() == '/login';
-
       final path = state.uri.toString();
 
       // 1. Not logged in - redirect to login
@@ -46,9 +48,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       final userRole = userRoleAsync.value;
 
       // If role is still loading, allow navigation temporarily
-      // Once loaded, subsequent navigations will enforce restrictions
       if (userRoleAsync.isLoading) {
-        return null; // Allow navigation while loading
+        return null;
       }
 
       // If there's an error loading role, redirect to login
@@ -113,7 +114,6 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
         ],
       ),
-
       GoRoute(
         path: '/settings',
         builder: (context, state) => const SettingsScreen(),
@@ -138,11 +138,21 @@ final routerProvider = Provider<GoRouter>((ref) {
       // Admin management routes (Super Admin only)
       GoRoute(
         path: '/admin',
-        redirect: (context, state) => '/admin/add-user',
+        redirect: (context, state) {
+          if (state.uri.toString() == '/admin') {
+            return '/admin/add-user';
+          }
+          return null;
+        },
         routes: [
           GoRoute(
             path: 'add-user',
             builder: (context, state) => const AddUserScreen(),
+          ),
+          GoRoute(
+            path: 'bookings',
+            builder: (context, state) =>
+                const AdminBookingListScreen(), // New Route
           ),
         ],
       ),
@@ -150,7 +160,6 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/customer',
         redirect: (context, state) {
-          // Redirect /customer to /customer/dashboard
           if (state.uri.toString() == '/customer') {
             return '/customer/dashboard';
           }

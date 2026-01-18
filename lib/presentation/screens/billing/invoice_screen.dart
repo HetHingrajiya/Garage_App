@@ -5,6 +5,10 @@ import 'package:autocare_pro/data/repositories/garage_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
+import 'package:intl/intl.dart';
 
 class InvoiceScreen extends ConsumerStatefulWidget {
   final JobCard? jobCard; // If generating new
@@ -89,13 +93,17 @@ class _InvoiceScreenState extends ConsumerState<InvoiceScreen> {
     try {
       await ref.read(garageRepositoryProvider).createInvoice(_invoice);
       setState(() => _isGenerated = true);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Invoice Generated')));
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Invoice Generated')));
+      }
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error: $e')));
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
     }
   }
 
@@ -154,12 +162,158 @@ class _InvoiceScreenState extends ConsumerState<InvoiceScreen> {
 
       await ref.read(garageRepositoryProvider).recordPayment(payment);
 
-      // Refresh screen logic (simplified: pop or fetch new)
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Payment Recorded')));
-      Navigator.pop(context);
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Payment Recorded')));
+        Navigator.pop(context);
+      }
     }
+  }
+
+  Future<void> _downloadPdf() async {
+    final doc = pw.Document();
+    final font = await PdfGoogleFonts.nunitoExtraLight();
+
+    doc.addPage(
+      pw.Page(
+        pageFormat: PdfPageFormat.a4,
+        build: (pw.Context context) {
+          return pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Header(
+                level: 0,
+                child: pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                  children: [
+                    pw.Text(
+                      'INVOICE',
+                      style: pw.TextStyle(font: font, fontSize: 40),
+                    ),
+                    pw.Text(
+                      _invoice.invoiceNumber,
+                      style: pw.TextStyle(font: font, fontSize: 20),
+                    ),
+                  ],
+                ),
+              ),
+              pw.SizedBox(height: 20),
+              pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                children: [
+                  pw.Text(
+                    'Date: ${DateFormat.yMMMd().format(_invoice.date)}',
+                    style: pw.TextStyle(font: font, fontSize: 14),
+                  ),
+                  pw.Text(
+                    'Status: ${_invoice.paymentStatus}',
+                    style: pw.TextStyle(
+                      font: font,
+                      fontSize: 14,
+                      fontWeight: pw.FontWeight.bold,
+                      color: _invoice.paymentStatus == 'Paid'
+                          ? PdfColors.green
+                          : PdfColors.red,
+                    ),
+                  ),
+                ],
+              ),
+              pw.SizedBox(height: 30),
+
+              // Items Header
+              pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                children: [
+                  pw.Text(
+                    'Description',
+                    style: pw.TextStyle(
+                      font: font,
+                      fontWeight: pw.FontWeight.bold,
+                    ),
+                  ),
+                  pw.Text(
+                    'Amount',
+                    style: pw.TextStyle(
+                      font: font,
+                      fontWeight: pw.FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              pw.Divider(),
+
+              // Items
+              ..._invoice.items.map(
+                (item) => pw.Padding(
+                  padding: const pw.EdgeInsets.symmetric(vertical: 4),
+                  child: pw.Row(
+                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                    children: [
+                      pw.Text(
+                        '${item.name} x${item.quantity}',
+                        style: pw.TextStyle(font: font),
+                      ),
+                      pw.Text(
+                        '${(item.price * item.quantity).toStringAsFixed(2)}',
+                        style: pw.TextStyle(font: font),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              pw.Divider(),
+              pw.SizedBox(height: 20),
+
+              // Totals
+              pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.end,
+                children: [
+                  pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.end,
+                    children: [
+                      pw.Text(
+                        'Subtotal: ${_invoice.subtotal.toStringAsFixed(2)}',
+                        style: pw.TextStyle(font: font),
+                      ),
+                      pw.Text(
+                        'Discount: -${_invoice.discount.toStringAsFixed(2)}',
+                        style: pw.TextStyle(font: font),
+                      ),
+                      pw.Text(
+                        'Tax: ${_invoice.tax.toStringAsFixed(2)}',
+                        style: pw.TextStyle(font: font),
+                      ),
+                      pw.Divider(),
+                      pw.Text(
+                        'Total: ${_invoice.total.toStringAsFixed(2)}',
+                        style: pw.TextStyle(
+                          font: font,
+                          fontWeight: pw.FontWeight.bold,
+                          fontSize: 18,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              pw.SizedBox(height: 40),
+              pw.Divider(),
+              pw.Center(
+                child: pw.Text(
+                  'Thank you for your business!',
+                  style: pw.TextStyle(font: font),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+
+    await Printing.layoutPdf(
+      onLayout: (PdfPageFormat format) async => doc.save(),
+    );
   }
 
   @override
@@ -171,6 +325,14 @@ class _InvoiceScreenState extends ConsumerState<InvoiceScreen> {
               ? 'Invoice ${_invoice.invoiceNumber}'
               : 'Generate Invoice',
         ),
+        actions: [
+          if (_isGenerated)
+            IconButton(
+              icon: const Icon(Icons.download),
+              tooltip: 'Download / Print',
+              onPressed: _downloadPdf,
+            ),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),

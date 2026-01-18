@@ -1,6 +1,7 @@
 import 'package:autocare_pro/data/models/job_card_model.dart';
 import 'package:autocare_pro/data/models/user_model.dart';
 import 'package:autocare_pro/data/repositories/garage_repository.dart';
+import 'package:autocare_pro/data/models/invoice_model.dart';
 import 'package:autocare_pro/presentation/screens/billing/add_service_part_screen.dart';
 import 'package:autocare_pro/presentation/screens/billing/invoice_screen.dart';
 import 'package:flutter/material.dart';
@@ -159,11 +160,6 @@ class _JobCardDetailScreenState extends ConsumerState<JobCardDetailScreen> {
                         ),
                       ],
                     ),
-                    Icon(
-                      Icons.work_history,
-                      size: 40,
-                      color: theme.colorScheme.onPrimaryContainer,
-                    ),
                   ],
                 ),
               ),
@@ -183,11 +179,44 @@ class _JobCardDetailScreenState extends ConsumerState<JobCardDetailScreen> {
             ]),
 
             const SizedBox(height: 16),
-            _buildSection(theme, 'Complaint', [
-              Text(job.complaint, style: theme.textTheme.bodyLarge),
-            ]),
+            Builder(
+              builder: (context) {
+                final complaintText = job.complaint
+                    .replaceAll('Service Request: ', '')
+                    .trim();
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (complaintText.isNotEmpty) ...[
+                      _buildSection(theme, 'Complaint', [
+                        Text(complaintText, style: theme.textTheme.bodyLarge),
+                      ]),
+                      const SizedBox(height: 16),
+                    ],
+                    if (job.selectedServices.isNotEmpty) ...[
+                      _buildSection(theme, 'Requested Services', [
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: job.selectedServices.map((s) {
+                            return Chip(
+                              label: Text(s.name),
+                              backgroundColor:
+                                  theme.colorScheme.secondaryContainer,
+                              labelStyle: TextStyle(
+                                color: theme.colorScheme.onSecondaryContainer,
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ]),
+                      const SizedBox(height: 16),
+                    ],
+                  ],
+                );
+              },
+            ),
 
-            const SizedBox(height: 16),
             _buildSection(theme, 'Mechanics', [
               if (job.mechanicIds.isEmpty)
                 const Text('No mechanics assigned')
@@ -266,24 +295,42 @@ class _JobCardDetailScreenState extends ConsumerState<JobCardDetailScreen> {
             ],
 
             if (_currentStatus == 'Completed' || _currentStatus == 'Delivered')
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton.icon(
-                  onPressed: () {
-                    // Check if invoice exists?
-                    // For now, always open Invoice Screen in Generate mode for this job card
-                    // Ideally we check repo if invoice exists for this jobId.
-                    // But simpler is to open InvoiceScreen and let it generated.
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => InvoiceScreen(jobCard: job),
+              StreamBuilder<List<Invoice>>(
+                stream: ref
+                    .watch(garageRepositoryProvider)
+                    .getInvoices(jobId: job.id),
+                builder: (context, snapshot) {
+                  final invoices = snapshot.data ?? [];
+                  final hasInvoice = invoices.isNotEmpty;
+
+                  return SizedBox(
+                    width: double.infinity,
+                    child: FilledButton.icon(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => InvoiceScreen(
+                              jobCard: hasInvoice ? null : job,
+                              invoice: hasInvoice ? invoices.first : null,
+                            ),
+                          ),
+                        );
+                      },
+                      icon: Icon(
+                        hasInvoice ? Icons.visibility : Icons.receipt_long,
                       ),
-                    );
-                  },
-                  icon: const Icon(Icons.receipt),
-                  label: const Text('Billing & Invoice'),
-                ),
+                      label: Text(
+                        hasInvoice ? 'View Invoice' : 'Generate Invoice',
+                      ),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: hasInvoice
+                            ? theme.colorScheme.secondary
+                            : theme.colorScheme.primary,
+                      ),
+                    ),
+                  );
+                },
               ),
 
             if (_currentStatus != 'Delivered' && _currentStatus != 'Completed')

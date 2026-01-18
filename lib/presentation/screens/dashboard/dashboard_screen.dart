@@ -185,6 +185,17 @@ class DashboardScreen extends ConsumerWidget {
                 },
               ),
             ),
+            PermissionBuilder(
+              permission: Permission.createJobCards,
+              child: _ActionTile(
+                title: 'Online Bookings',
+                icon: Icons.calendar_month,
+                onTap: () {
+                  context.push('/admin/bookings');
+                },
+                color: Colors.deepOrange,
+              ),
+            ),
             // Super Admin only - Add New Admin
             PermissionBuilder(
               permission: Permission.createAdmins,
@@ -318,6 +329,17 @@ class DashboardScreen extends ConsumerWidget {
                 onTap: () {
                   Navigator.pop(context);
                   context.push('/job-cards');
+                },
+              ),
+            ),
+            PermissionBuilder(
+              permission: Permission.createJobCards,
+              child: ListTile(
+                title: const Text('Online Bookings'),
+                leading: const Icon(Icons.calendar_month),
+                onTap: () {
+                  Navigator.pop(context);
+                  context.push('/admin/bookings');
                 },
               ),
             ),

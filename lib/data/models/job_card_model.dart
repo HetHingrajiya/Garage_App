@@ -61,6 +61,10 @@ class JobCard {
   final String? notes; // Remarks
   final List<JobService> selectedServices;
   final List<JobPart> selectedParts;
+  final String? bookingSource;
+  final String? scheduledTimeSlot;
+  final String? serviceType;
+  final String? serviceCategory;
 
   JobCard({
     required this.id,
@@ -79,6 +83,10 @@ class JobCard {
     this.notes,
     this.selectedServices = const [],
     this.selectedParts = const [],
+    this.bookingSource,
+    this.scheduledTimeSlot,
+    this.serviceType,
+    this.serviceCategory,
   });
 
   Map<String, dynamic> toMap() {
@@ -100,6 +108,10 @@ class JobCard {
       'notes': notes,
       'selectedServices': selectedServices.map((e) => e.toMap()).toList(),
       'selectedParts': selectedParts.map((e) => e.toMap()).toList(),
+      'bookingSource': bookingSource,
+      'scheduledTimeSlot': scheduledTimeSlot,
+      'serviceType': serviceType,
+      'serviceCategory': serviceCategory,
     };
   }
 
@@ -130,6 +142,10 @@ class JobCard {
               ?.map((e) => JobPart.fromMap(e))
               .toList() ??
           [],
+      bookingSource: map['bookingSource'],
+      scheduledTimeSlot: map['scheduledTimeSlot'],
+      serviceType: map['serviceType'],
+      serviceCategory: map['serviceCategory'],
     );
   }
 }

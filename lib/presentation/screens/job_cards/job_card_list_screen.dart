@@ -51,12 +51,7 @@ final jobCardListProvider = StreamProvider<List<JobCard>>((ref) {
 
     return filteredJobs.where((job) {
       // 1. Filter by status
-      if (filter == 'Active' &&
-          (job.status == 'Completed' || job.status == 'Delivered')) {
-        return false;
-      }
-      if (filter == 'Completed' &&
-          (job.status != 'Completed' && job.status != 'Delivered')) {
+      if (filter != 'All' && job.status != filter) {
         return false;
       }
 
@@ -108,19 +103,31 @@ class JobCardListScreen extends ConsumerWidget {
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Row(
-                  children: ['All', 'Active', 'Completed'].map((filter) {
-                    final isSelected = currentFilter == filter;
-                    return Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: FilterChip(
-                        label: Text(filter),
-                        selected: isSelected,
-                        onSelected: (_) => ref
-                            .read(jobStatusFilterProvider.notifier)
-                            .set(filter),
-                      ),
-                    );
-                  }).toList(),
+                  children:
+                      [
+                        'All',
+                        'Received',
+                        'Inspection',
+                        'InProgress',
+                        'Completed',
+                        'Delivered',
+                      ].map((filter) {
+                        final isSelected = currentFilter == filter;
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: ChoiceChip(
+                            label: Text(filter),
+                            selected: isSelected,
+                            onSelected: (selected) {
+                              if (selected) {
+                                ref
+                                    .read(jobStatusFilterProvider.notifier)
+                                    .set(filter);
+                              }
+                            },
+                          ),
+                        );
+                      }).toList(),
                 ),
               ),
               const SizedBox(height: 8),

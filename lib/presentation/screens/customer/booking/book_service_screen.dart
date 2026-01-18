@@ -20,7 +20,10 @@ class _BookServiceScreenState extends ConsumerState<BookServiceScreen> {
   final _notesController = TextEditingController();
   String? _selectedVehicleId;
   Map<String, dynamic>? _selectedVehicleData;
-  ServiceType? _selectedService;
+
+  // Changed to Set for multiple selection
+  final Set<ServiceType> _selectedServices = {};
+
   DateTime? _selectedDate;
   String? _selectedTimeSlot;
   bool _isLoading = false;
@@ -58,8 +61,15 @@ class _BookServiceScreenState extends ConsumerState<BookServiceScreen> {
       return;
     }
 
-    // Show confirmation dialog
-    if (_selectedVehicleData == null || _selectedService == null) return;
+    if (_selectedVehicleData == null || _selectedServices.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select vehicle and at least one service'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
 
     showDialog(
       context: context,
@@ -67,7 +77,7 @@ class _BookServiceScreenState extends ConsumerState<BookServiceScreen> {
         vehicleBrand: _selectedVehicleData!['brand'] ?? 'Unknown',
         vehicleModel: _selectedVehicleData!['model'] ?? 'Unknown',
         vehicleNumber: _selectedVehicleData!['number'] ?? '',
-        service: _selectedService!,
+        services: _selectedServices.toList(),
         scheduledDate: _selectedDate!,
         timeSlot: _selectedTimeSlot!,
         notes: _notesController.text.trim().isEmpty
@@ -86,9 +96,23 @@ class _BookServiceScreenState extends ConsumerState<BookServiceScreen> {
 
       final jobCardId = const Uuid().v4();
       final timeOfDay = TimeSlots.parseTimeSlot(_selectedTimeSlot!);
-      final category = ServiceCategories.getCategoryForService(
-        _selectedService!.id,
+
+      // Calculate totals
+      final totalCost = _selectedServices.fold<double>(
+        0,
+        (sum, s) => sum + s.estimatedPrice,
       );
+      final totalDuration = _selectedServices.fold<int>(
+        0,
+        (sum, s) => sum + s.estimatedDurationMinutes,
+      );
+
+      final serviceNames = _selectedServices.map((s) => s.name).join(', ');
+      final mainCategory =
+          ServiceCategories.getCategoryForService(
+            _selectedServices.first.id,
+          )?.name ??
+          'General';
 
       // Generate job number
       final jobNo =
@@ -98,10 +122,11 @@ class _BookServiceScreenState extends ConsumerState<BookServiceScreen> {
         'jobNo': jobNo,
         'customerId': user.uid,
         'vehicleId': _selectedVehicleId ?? '',
-        'mechanicIds': [], // Empty initially, admin will assign later
+        'mechanicIds': [],
         'status': 'Pending',
         'priority': 'Normal',
         'date': Timestamp.now(),
+        // Parse date properly including timeSlot
         'estimatedDeliveryDate': Timestamp.fromDate(
           DateTime(
             _selectedDate!.year,
@@ -111,22 +136,31 @@ class _BookServiceScreenState extends ConsumerState<BookServiceScreen> {
             timeOfDay.minute,
           ),
         ),
-        'complaint': _notesController.text.trim().isEmpty
-            ? 'Service Request: ${_selectedService!.name}'
-            : _notesController.text.trim(),
-        'initialKm':
-            0, // Customer doesn't know this yet, will be filled by mechanic
+        'complaint': _notesController.text.trim(),
+        'initialKm': 0,
         'finalKm': null,
-        'totalAmount': 0.0,
-        'notes': 'Customer Booking - ${_selectedService!.name}',
-        'selectedServices': [],
+        'totalAmount': 0.0, // Final amount TBD
+        'notes': 'Customer Booking - $serviceNames',
+        'selectedServices': _selectedServices
+            .map(
+              (s) => {
+                'id': s.id,
+                'name': s.name,
+                'price': s.estimatedPrice,
+                'category':
+                    ServiceCategories.getCategoryForService(s.id)?.name ??
+                    'General',
+              },
+            )
+            .toList(),
         'selectedParts': [],
+
         // Additional fields for customer bookings
-        'serviceType': _selectedService!.name,
-        'serviceId': _selectedService!.id,
-        'serviceCategory': category?.name ?? 'General',
-        'estimatedCost': _selectedService!.estimatedPrice,
-        'estimatedDuration': _selectedService!.estimatedDurationMinutes,
+        'serviceType': serviceNames, // Store joined names
+        'serviceId': 'MULTI',
+        'serviceCategory': mainCategory,
+        'estimatedCost': totalCost,
+        'estimatedDuration': totalDuration,
         'scheduledDate': Timestamp.fromDate(
           DateTime(
             _selectedDate!.year,
@@ -146,7 +180,6 @@ class _BookServiceScreenState extends ConsumerState<BookServiceScreen> {
           .set(jobCardData);
 
       if (mounted) {
-        // Show success message with animation
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Row(
@@ -200,7 +233,6 @@ class _BookServiceScreenState extends ConsumerState<BookServiceScreen> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            // Header
             Text(
               'Schedule Your Service',
               style: theme.textTheme.headlineSmall?.copyWith(
@@ -209,14 +241,13 @@ class _BookServiceScreenState extends ConsumerState<BookServiceScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Select a service and preferred time slot',
+              'Select one or more services',
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: Colors.grey[600],
               ),
             ),
             const SizedBox(height: 24),
 
-            // Vehicle Selection
             _VehicleSelector(
               selectedVehicle: _selectedVehicleId,
               onChanged: (id, data) => setState(() {
@@ -226,23 +257,28 @@ class _BookServiceScreenState extends ConsumerState<BookServiceScreen> {
             ),
             const SizedBox(height: 24),
 
-            // Service Selection
             Text(
-              'Select Service',
+              'Select Services',
               style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
             ),
             const SizedBox(height: 12),
             _ServiceCategorySelector(
-              selectedService: _selectedService,
-              onServiceSelected: (service) =>
-                  setState(() => _selectedService = service),
+              selectedServices: _selectedServices,
+              onServiceToggle: (service, isSelected) {
+                setState(() {
+                  if (isSelected) {
+                    _selectedServices.add(service);
+                  } else {
+                    _selectedServices.remove(service);
+                  }
+                });
+              },
             ),
             const SizedBox(height: 24),
 
-            // Date & Time Selection
-            if (_selectedService != null) ...[
+            if (_selectedServices.isNotEmpty) ...[
               Text(
                 'Select Date & Time',
                 style: theme.textTheme.titleMedium?.copyWith(
@@ -256,7 +292,6 @@ class _BookServiceScreenState extends ConsumerState<BookServiceScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Date Selection
                       OutlinedButton.icon(
                         onPressed: _selectDate,
                         icon: const Icon(Icons.calendar_today),
@@ -272,8 +307,6 @@ class _BookServiceScreenState extends ConsumerState<BookServiceScreen> {
                           alignment: Alignment.centerLeft,
                         ),
                       ),
-
-                      // Time Slots
                       if (_selectedDate != null) ...[
                         const SizedBox(height: 16),
                         Text(
@@ -292,7 +325,6 @@ class _BookServiceScreenState extends ConsumerState<BookServiceScreen> {
                               _selectedDate!,
                             );
                             final isSelected = _selectedTimeSlot == slot;
-
                             return ChoiceChip(
                               label: Text(slot),
                               selected: isSelected,
@@ -327,8 +359,7 @@ class _BookServiceScreenState extends ConsumerState<BookServiceScreen> {
               const SizedBox(height: 24),
             ],
 
-            // Additional Notes
-            if (_selectedService != null) ...[
+            if (_selectedServices.isNotEmpty) ...[
               Text(
                 'Additional Notes (Optional)',
                 style: theme.textTheme.titleMedium?.copyWith(
@@ -354,8 +385,7 @@ class _BookServiceScreenState extends ConsumerState<BookServiceScreen> {
               const SizedBox(height: 24),
             ],
 
-            // Booking Summary
-            if (_selectedService != null &&
+            if (_selectedServices.isNotEmpty &&
                 _selectedVehicleData != null &&
                 _selectedDate != null &&
                 _selectedTimeSlot != null) ...[
@@ -363,15 +393,14 @@ class _BookServiceScreenState extends ConsumerState<BookServiceScreen> {
                 vehicleBrand: _selectedVehicleData!['brand'] ?? 'Unknown',
                 vehicleModel: _selectedVehicleData!['model'] ?? 'Unknown',
                 vehicleNumber: _selectedVehicleData!['number'] ?? '',
-                service: _selectedService!,
+                services: _selectedServices.toList(),
                 scheduledDate: _selectedDate!,
                 timeSlot: _selectedTimeSlot!,
               ),
               const SizedBox(height: 24),
             ],
 
-            // Submit Button
-            if (_selectedService != null) ...[
+            if (_selectedServices.isNotEmpty) ...[
               SizedBox(
                 width: double.infinity,
                 height: 54,
@@ -411,7 +440,6 @@ class _BookServiceScreenState extends ConsumerState<BookServiceScreen> {
   }
 }
 
-// Vehicle Selector Widget
 class _VehicleSelector extends ConsumerWidget {
   final String? selectedVehicle;
   final Function(String?, Map<String, dynamic>?) onChanged;
@@ -597,14 +625,13 @@ class _VehicleSelector extends ConsumerWidget {
   }
 }
 
-// Service Category Selector
 class _ServiceCategorySelector extends StatefulWidget {
-  final ServiceType? selectedService;
-  final Function(ServiceType) onServiceSelected;
+  final Set<ServiceType> selectedServices;
+  final Function(ServiceType, bool) onServiceToggle;
 
   const _ServiceCategorySelector({
-    required this.selectedService,
-    required this.onServiceSelected,
+    required this.selectedServices,
+    required this.onServiceToggle,
   });
 
   @override
@@ -692,8 +719,10 @@ class _ServiceCategorySelectorState extends State<_ServiceCategorySelector> {
                   ),
                   child: Column(
                     children: category.services.map((service) {
-                      final isSelected =
-                          widget.selectedService?.id == service.id;
+                      // Using unique ID check although Set handles objects
+                      final isSelected = widget.selectedServices.any(
+                        (s) => s.id == service.id,
+                      );
 
                       return Container(
                         margin: const EdgeInsets.symmetric(
@@ -712,12 +741,12 @@ class _ServiceCategorySelectorState extends State<_ServiceCategorySelector> {
                               ? category.color.withValues(alpha: 0.05)
                               : Colors.white,
                         ),
-                        child: RadioListTile<String>(
-                          value: service.id,
-                          groupValue: widget.selectedService?.id,
+                        child: CheckboxListTile(
+                          value: isSelected,
                           onChanged: (value) {
-                            widget.onServiceSelected(service);
+                            widget.onServiceToggle(service, value ?? false);
                           },
+                          activeColor: category.color,
                           title: Text(
                             service.name,
                             style: TextStyle(
@@ -786,12 +815,11 @@ class _ServiceCategorySelectorState extends State<_ServiceCategorySelector> {
   }
 }
 
-// Booking Summary Card
 class _BookingSummaryCard extends StatelessWidget {
   final String vehicleBrand;
   final String vehicleModel;
   final String vehicleNumber;
-  final ServiceType service;
+  final List<ServiceType> services;
   final DateTime scheduledDate;
   final String timeSlot;
 
@@ -799,104 +827,81 @@ class _BookingSummaryCard extends StatelessWidget {
     required this.vehicleBrand,
     required this.vehicleModel,
     required this.vehicleNumber,
-    required this.service,
+    required this.services,
     required this.scheduledDate,
     required this.timeSlot,
   });
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final category = ServiceCategories.getCategoryForService(service.id);
+    final totalCost = services.fold<double>(
+      0,
+      (sum, s) => sum + s.estimatedPrice,
+    );
 
     return Card(
-      elevation: 2,
-      color: theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
+      elevation: 4,
+      shadowColor: Colors.black26,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                Icon(Icons.receipt_long, color: theme.colorScheme.primary),
-                const SizedBox(width: 8),
-                Text(
+                Icon(Icons.assignment_turned_in, color: Colors.blue[700]),
+                const SizedBox(width: 12),
+                const Text(
                   'Booking Summary',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
               ],
             ),
-            const SizedBox(height: 16),
-            _buildSummaryRow(
-              Icons.build,
-              'Service',
-              service.name,
-              category?.color,
-            ),
-            const Divider(height: 24),
-            _buildSummaryRow(
-              Icons.directions_car,
-              'Vehicle',
-              '$vehicleBrand $vehicleModel - ${vehicleNumber.toUpperCase()}',
-              null,
-            ),
-            const Divider(height: 24),
-            _buildSummaryRow(
-              Icons.calendar_today,
-              'Date',
-              DateFormat('EEEE, MMM dd, yyyy').format(scheduledDate),
-              null,
-            ),
-            const Divider(height: 24),
-            _buildSummaryRow(Icons.access_time, 'Time', timeSlot, null),
-            if (service.estimatedPrice > 0) ...[
-              const Divider(height: 24),
-              _buildSummaryRow(
-                Icons.currency_rupee,
-                'Estimated Cost',
-                '₹${service.estimatedPrice.toStringAsFixed(0)}',
-                Colors.green,
+            const Divider(height: 32),
+            _row('Vehicle', '$vehicleBrand $vehicleModel'),
+            const SizedBox(height: 12),
+            _row('Number', vehicleNumber.toUpperCase()),
+            const SizedBox(height: 12),
+            _row('Services', '${services.length} selected'),
+            if (services.isNotEmpty) ...[
+              Padding(
+                padding: const EdgeInsets.only(left: 16, top: 4),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: services
+                      .map(
+                        (s) => Text(
+                          '• ${s.name}',
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      )
+                      .toList(),
+                ),
               ),
             ],
+            const SizedBox(height: 12),
+            _row('Est. Cost', '₹${totalCost.toStringAsFixed(0)}'),
+            const SizedBox(height: 12),
+            _row('Date', DateFormat('MMM dd, yyyy').format(scheduledDate)),
+            const SizedBox(height: 12),
+            _row('Time', timeSlot),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildSummaryRow(
-    IconData icon,
-    String label,
-    String value,
-    Color? valueColor,
-  ) {
+  Widget _row(String label, String value) {
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Icon(icon, size: 20, color: Colors.grey[700]),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                value,
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14,
-                  color: valueColor,
-                ),
-              ),
-            ],
-          ),
+        Text(label, style: const TextStyle(color: Colors.grey)),
+        Text(
+          value,
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
         ),
       ],
     );

@@ -6,7 +6,7 @@ class BookingConfirmationDialog extends StatefulWidget {
   final String vehicleBrand;
   final String vehicleModel;
   final String vehicleNumber;
-  final ServiceType service;
+  final List<ServiceType> services;
   final DateTime scheduledDate;
   final String timeSlot;
   final String? notes;
@@ -17,7 +17,7 @@ class BookingConfirmationDialog extends StatefulWidget {
     required this.vehicleBrand,
     required this.vehicleModel,
     required this.vehicleNumber,
-    required this.service,
+    required this.services,
     required this.scheduledDate,
     required this.timeSlot,
     this.notes,
@@ -35,7 +35,19 @@ class _BookingConfirmationDialogState extends State<BookingConfirmationDialog> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final category = ServiceCategories.getCategoryForService(widget.service.id);
+    final totalCost = widget.services.fold<double>(
+      0,
+      (sum, s) => sum + s.estimatedPrice,
+    );
+    final totalDuration = widget.services.fold<int>(
+      0,
+      (sum, s) => sum + s.estimatedDurationMinutes,
+    );
+
+    // Use first service's category icon/color for header, or default
+    final firstCategory = widget.services.isNotEmpty
+        ? ServiceCategories.getCategoryForService(widget.services.first.id)
+        : null;
 
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -53,13 +65,13 @@ class _BookingConfirmationDialogState extends State<BookingConfirmationDialog> {
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
                       color:
-                          category?.color.withValues(alpha: 0.1) ??
+                          firstCategory?.color.withValues(alpha: 0.1) ??
                           Colors.blue.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Icon(
-                      category?.icon ?? Icons.build,
-                      color: category?.color ?? Colors.blue,
+                      firstCategory?.icon ?? Icons.build,
+                      color: firstCategory?.color ?? Colors.blue,
                       size: 32,
                     ),
                   ),
@@ -90,18 +102,20 @@ class _BookingConfirmationDialogState extends State<BookingConfirmationDialog> {
 
               // Service Details
               _buildSection('Service Details', Icons.build_circle, [
-                _buildDetailRow('Service', widget.service.name),
-                _buildDetailRow('Category', category?.name ?? 'General'),
-                _buildDetailRow(
-                  'Estimated Cost',
-                  widget.service.estimatedPrice > 0
-                      ? '₹${widget.service.estimatedPrice.toStringAsFixed(0)}'
-                      : 'To be quoted',
+                ...widget.services.map(
+                  (s) => _buildDetailRow(
+                    s.name,
+                    s.estimatedPrice > 0
+                        ? '₹${s.estimatedPrice.toStringAsFixed(0)}'
+                        : 'To be quoted',
+                  ),
                 ),
+                const Divider(),
                 _buildDetailRow(
-                  'Duration',
-                  '${widget.service.estimatedDurationMinutes} mins',
+                  'Total Estimated Cost',
+                  totalCost > 0 ? '₹${totalCost.toStringAsFixed(0)}' : 'TBD',
                 ),
+                _buildDetailRow('Total Duration', '$totalDuration mins'),
               ]),
               const SizedBox(height: 16),
 

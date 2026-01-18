@@ -285,6 +285,17 @@ class GarageRepository {
   }
 
   Future<void> createInvoice(Invoice invoice) async {
+    // Check for existing invoice for this job
+    final existingDocs = await _firestore
+        .collection('invoices')
+        .where('jobCardId', isEqualTo: invoice.jobCardId)
+        .limit(1)
+        .get();
+
+    if (existingDocs.docs.isNotEmpty) {
+      throw Exception('Invoice already exists for this job.');
+    }
+
     // 1. Create Invoice
     await _firestore
         .collection('invoices')
@@ -345,6 +356,21 @@ class GarageRepository {
     await _firestore.collection('invoices').doc(payment.invoiceId).update({
       'paymentStatus': newStatus,
     });
+
+    if (newStatus == 'Paid') {
+      try {
+        final jobSnapshot = await _firestore
+            .collection('job_cards')
+            .doc(invoice.jobCardId)
+            .get();
+        if (jobSnapshot.exists) {
+          final jobCard = JobCard.fromMap(jobSnapshot.data()!, jobSnapshot.id);
+          await updateJobStatusWithNotification(jobCard, 'Delivered');
+        }
+      } catch (e) {
+        debugPrint('Error auto-updating job status: $e');
+      }
+    }
   }
 
   // --- Inventory Management ---
@@ -471,6 +497,33 @@ class GarageRepository {
       userId: job.customerId,
       title: 'Job Status Update',
       message: 'Your Job #${job.jobNo} is now $newStatus',
+      type: 'Status',
+      date: DateTime.now(),
+    );
+    await createNotification(notification);
+  }
+
+  // Accept Online Booking: Assign Mechanic + Update Status + Notify
+  Future<void> acceptBooking({
+    required String jobId,
+    required String customerId,
+    required String jobNo,
+    required List<String> mechanicIds,
+  }) async {
+    // 1. Update Job Card
+    await _firestore.collection('job_cards').doc(jobId).update({
+      'status': 'Received',
+      'mechanicIds': mechanicIds,
+    });
+
+    // 2. Notify Customer
+    final notifId = const Uuid().v4();
+    final notification = GarageNotification(
+      id: notifId,
+      userId: customerId,
+      title: 'Booking Confirmed',
+      message:
+          'Your service appointment #${jobNo} has been confirmed. Mechanic assigned.',
       type: 'Status',
       date: DateTime.now(),
     );
