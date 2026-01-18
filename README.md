@@ -1,4 +1,4 @@
-# � AutoCare Pro - Master Project Manual
+# 📘 AutoCare Pro - Master Project Manual
 
 **Version 1.0.0** | **Last Updated:** January 18, 2026
 
@@ -110,7 +110,7 @@ lib/
 
 ---
 
-## 3. � Installation & Setup
+## 3. 🚀 Installation & Setup
 
 ### Prerequisites
 1.  **Flutter SDK:** [Install Here](https://docs.flutter.dev/get-started/install)
@@ -147,7 +147,7 @@ lib/
 
 ## 4. 📖 User Manual (Operations)
 
-### � Staff Management (Admins Only)
+### 👮 Staff Management (Admins Only)
 1.  Navigate to **Settings** > **Staff & Mechanics**.
 2.  Click **+ Add Staff**.
 3.  **Vital:** Select the correct Role.
