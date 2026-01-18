@@ -1,0 +1,131 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function getUserRole() {
+      // Check users collection first (for admins/mechanics)
+      let userDoc = get(/databases/$(database)/documents/users/$(request.auth.uid));
+      if (userDoc != null && userDoc.data.role != null) {
+        return userDoc.data.role;
+      }
+      
+      // Check customers collection
+      let customerDoc = get(/databases/$(database)/documents/customers/$(request.auth.uid));
+      if (customerDoc != null) {
+        // Return role field if it exists, otherwise default to 'customer'
+        return customerDoc.data.role != null ? customerDoc.data.role : 'customer';
+      }
+      
+      return null;
+    }
+    
+    function isAdmin() {
+      return isSignedIn() && getUserRole() == 'admin';
+    }
+    
+    function isMechanic() {
+      return isSignedIn() && getUserRole() == 'mechanic';
+    }
+    
+    function isCustomer() {
+      return isSignedIn() && getUserRole() == 'customer';
+    }
+    
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+    
+    // Users collection (legacy - for admins and mechanics)
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow create: if isAdmin();
+      allow update: if isAdmin() || isOwner(userId);
+      allow delete: if isAdmin();
+    }
+    
+    // Customers collection
+    match /customers/{customerId} {
+      allow read: if isAdmin() || isMechanic() || isOwner(customerId);
+      allow create: if isAdmin() || !exists(/databases/$(database)/documents/customers/$(request.auth.uid));
+      allow update: if isAdmin() || isOwner(customerId);
+      allow delete: if isAdmin();
+    }
+    
+    // Mechanics collection
+    match /mechanics/{mechanicId} {
+      allow read: if isSignedIn();
+      allow create: if isAdmin();
+      allow update: if isAdmin() || isOwner(mechanicId);
+      allow delete: if isAdmin();
+    }
+    
+    // Admins collection
+    match /admins/{adminId} {
+      allow read: if isAdmin();
+      allow write: if isAdmin();
+    }
+    
+    // Vehicles collection
+    match /vehicles/{vehicleId} {
+      allow read: if isSignedIn();
+      allow create: if isAdmin() || isMechanic() || (isCustomer() && request.resource.data.customerId == request.auth.uid);
+      allow update: if isAdmin() || isMechanic();
+      allow delete: if isAdmin();
+    }
+    
+    // Job Cards collection
+    match /job_cards/{jobId} {
+      allow read: if isSignedIn();
+      allow create: if isAdmin() || isMechanic() || isCustomer();
+      allow update: if isAdmin() || isMechanic();
+      allow delete: if isAdmin();
+    }
+    
+    // Invoices collection
+    match /invoices/{invoiceId} {
+      allow read: if isAdmin() || isMechanic() || (isCustomer() && resource.data.customerId == request.auth.uid);
+      allow create: if isAdmin() || isMechanic();
+      allow update: if isAdmin() || isMechanic();
+      allow delete: if isAdmin();
+    }
+    
+    // Inventory collection
+    match /inventory/{itemId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() || isMechanic();
+    }
+    
+    // Notifications collection
+    match /notifications/{notificationId} {
+      allow read: if isOwner(resource.data.userId);
+      allow create: if isAdmin() || isMechanic();
+      allow update: if isOwner(resource.data.userId);
+      allow delete: if isAdmin() || isOwner(resource.data.userId);
+    }
+    
+    // Services collection
+    match /services/{serviceId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+    
+    // Payments collection
+    match /payments/{paymentId} {
+      allow read: if isAdmin() || isMechanic() || (isCustomer() && resource.data.customerId == request.auth.uid);
+      allow create: if isAdmin() || isMechanic();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+    
+    // Settings collection
+    match /settings/{settingId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+  }
+}

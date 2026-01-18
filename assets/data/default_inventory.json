@@ -1,0 +1,371 @@
+[
+    {
+        "name": "Engine Oil 5W-30",
+        "category": "Engine",
+        "brand": "Castrol",
+        "quantity": 25,
+        "purchasePrice": 1500,
+        "price": 2200,
+        "vehicleType": "Car"
+    },
+    {
+        "name": "Engine Oil 10W-40",
+        "category": "Engine",
+        "brand": "Shell",
+        "quantity": 20,
+        "purchasePrice": 1200,
+        "price": 1800,
+        "vehicleType": "Car"
+    },
+    {
+        "name": "Oil Filter (Sedan)",
+        "category": "Engine",
+        "brand": "Bosch",
+        "quantity": 15,
+        "purchasePrice": 200,
+        "price": 350,
+        "vehicleType": "Car"
+    },
+    {
+        "name": "Air Filter (SUV)",
+        "category": "Engine",
+        "brand": "Mann",
+        "quantity": 12,
+        "purchasePrice": 300,
+        "price": 500,
+        "vehicleType": "Car"
+    },
+    {
+        "name": "Coolant (1L)",
+        "category": "Engine",
+        "brand": "Motul",
+        "quantity": 30,
+        "purchasePrice": 250,
+        "price": 400,
+        "vehicleType": "Car"
+    },
+    {
+        "name": "Brake Fluid DOT4",
+        "category": "Engine",
+        "brand": "Brembo",
+        "quantity": 10,
+        "purchasePrice": 300,
+        "price": 450,
+        "vehicleType": "Car"
+    },
+    {
+        "name": "Car Battery 12V 45Ah",
+        "category": "Electrical",
+        "brand": "Amaron",
+        "quantity": 8,
+        "purchasePrice": 3500,
+        "price": 5000,
+        "vehicleType": "Car"
+    },
+    {
+        "name": "Car Battery 12V 65Ah",
+        "category": "Electrical",
+        "brand": "Exide",
+        "quantity": 6,
+        "purchasePrice": 4500,
+        "price": 6500,
+        "vehicleType": "Car"
+    },
+    {
+        "name": "Headlight Bulb H4",
+        "category": "Electrical",
+        "brand": "Philips",
+        "quantity": 20,
+        "purchasePrice": 150,
+        "price": 250,
+        "vehicleType": "Car"
+    },
+    {
+        "name": "Spark Plugs (4 Set)",
+        "category": "Electrical",
+        "brand": "NGK",
+        "quantity": 10,
+        "purchasePrice": 800,
+        "price": 1200,
+        "vehicleType": "Car"
+    },
+    {
+        "name": "Wiper Blade 24\"",
+        "category": "Body",
+        "brand": "Bosch",
+        "quantity": 15,
+        "purchasePrice": 300,
+        "price": 500,
+        "vehicleType": "Car"
+    },
+    {
+        "name": "Car Mat Set",
+        "category": "Accessories",
+        "brand": "Generic",
+        "quantity": 5,
+        "purchasePrice": 1000,
+        "price": 1800,
+        "vehicleType": "Car"
+    },
+    {
+        "name": "Brake Pads (Front)",
+        "category": "Body",
+        "brand": "Brembo",
+        "quantity": 10,
+        "purchasePrice": 1500,
+        "price": 2500,
+        "vehicleType": "Car"
+    },
+    {
+        "name": "Suspension Strut",
+        "category": "Body",
+        "brand": "Monroe",
+        "quantity": 4,
+        "purchasePrice": 2000,
+        "price": 3500,
+        "vehicleType": "Car"
+    },
+    {
+        "name": "Engine Oil 10W-30 (Bike)",
+        "category": "Engine",
+        "brand": "Motul",
+        "quantity": 30,
+        "purchasePrice": 350,
+        "price": 550,
+        "vehicleType": "Bike"
+    },
+    {
+        "name": "Chain Spray",
+        "category": "Engine",
+        "brand": "Motul",
+        "quantity": 20,
+        "purchasePrice": 200,
+        "price": 350,
+        "vehicleType": "Bike"
+    },
+    {
+        "name": "Air Filter (Bike)",
+        "category": "Engine",
+        "brand": "Yamaha",
+        "quantity": 15,
+        "purchasePrice": 150,
+        "price": 250,
+        "vehicleType": "Bike"
+    },
+    {
+        "name": "Bike Battery 12V 4Ah",
+        "category": "Electrical",
+        "brand": "Amaron",
+        "quantity": 12,
+        "purchasePrice": 900,
+        "price": 1400,
+        "vehicleType": "Bike"
+    },
+    {
+        "name": "Bike Battery 12V 7Ah",
+        "category": "Electrical",
+        "brand": "Exide",
+        "quantity": 10,
+        "purchasePrice": 1200,
+        "price": 1800,
+        "vehicleType": "Bike"
+    },
+    {
+        "name": "Indicator Bulb",
+        "category": "Electrical",
+        "brand": "Philips",
+        "quantity": 40,
+        "purchasePrice": 20,
+        "price": 50,
+        "vehicleType": "Bike"
+    },
+    {
+        "name": "Spark Plug (Single)",
+        "category": "Electrical",
+        "brand": "Champion",
+        "quantity": 25,
+        "purchasePrice": 100,
+        "price": 180,
+        "vehicleType": "Bike"
+    },
+    {
+        "name": "Chain Sprocket Kit",
+        "category": "Body",
+        "brand": "Rolon",
+        "quantity": 8,
+        "purchasePrice": 800,
+        "price": 1400,
+        "vehicleType": "Bike"
+    },
+    {
+        "name": "Clutch Cable",
+        "category": "Body",
+        "brand": "Suprajit",
+        "quantity": 20,
+        "purchasePrice": 100,
+        "price": 180,
+        "vehicleType": "Bike"
+    },
+    {
+        "name": "Brake Shoe (Rear)",
+        "category": "Body",
+        "brand": "ASK",
+        "quantity": 15,
+        "purchasePrice": 150,
+        "price": 280,
+        "vehicleType": "Bike"
+    },
+    {
+        "name": "Disc Pad (Front)",
+        "category": "Body",
+        "brand": "Bybre",
+        "quantity": 15,
+        "purchasePrice": 200,
+        "price": 350,
+        "vehicleType": "Bike"
+    },
+    {
+        "name": "Handle Grip",
+        "category": "Body",
+        "brand": "Generic",
+        "quantity": 10,
+        "purchasePrice": 50,
+        "price": 150,
+        "vehicleType": "Bike"
+    },
+    {
+        "name": "Mirror Set",
+        "category": "Accessories",
+        "brand": "Fiem",
+        "quantity": 10,
+        "purchasePrice": 250,
+        "price": 450,
+        "vehicleType": "Bike"
+    },
+    {
+        "name": "Tyre 100/90-17",
+        "category": "Body",
+        "brand": "MRF",
+        "quantity": 6,
+        "purchasePrice": 1800,
+        "price": 2600,
+        "vehicleType": "Bike"
+    },
+    {
+        "name": "Diesel Engine Oil 15W-40",
+        "category": "Engine",
+        "brand": "Servo",
+        "quantity": 20,
+        "purchasePrice": 2500,
+        "price": 3200,
+        "vehicleType": "Truck"
+    },
+    {
+        "name": "Fuel Filter (Heavy)",
+        "category": "Engine",
+        "brand": "Fleetguard",
+        "quantity": 10,
+        "purchasePrice": 600,
+        "price": 1000,
+        "vehicleType": "Truck"
+    },
+    {
+        "name": "Air Brake Valve",
+        "category": "Engine",
+        "brand": "Wabco",
+        "quantity": 5,
+        "purchasePrice": 1500,
+        "price": 2500,
+        "vehicleType": "Truck"
+    },
+    {
+        "name": "Turbocharger Kit",
+        "category": "Engine",
+        "brand": "Holset",
+        "quantity": 2,
+        "purchasePrice": 15000,
+        "price": 22000,
+        "vehicleType": "Truck"
+    },
+    {
+        "name": "Truck Battery 12V 150Ah",
+        "category": "Electrical",
+        "brand": "Exide",
+        "quantity": 4,
+        "purchasePrice": 12000,
+        "price": 16000,
+        "vehicleType": "Truck"
+    },
+    {
+        "name": "Alternator 24V",
+        "category": "Electrical",
+        "brand": "Lucas",
+        "quantity": 3,
+        "purchasePrice": 8000,
+        "price": 12000,
+        "vehicleType": "Truck"
+    },
+    {
+        "name": "Tail Light Assembly",
+        "category": "Electrical",
+        "brand": "Lumax",
+        "quantity": 8,
+        "purchasePrice": 1200,
+        "price": 1800,
+        "vehicleType": "Truck"
+    },
+    {
+        "name": "Leaf Spring Assembly",
+        "category": "Body",
+        "brand": "Jamna",
+        "quantity": 4,
+        "purchasePrice": 4000,
+        "price": 6500,
+        "vehicleType": "Truck"
+    },
+    {
+        "name": "King Pin Kit",
+        "category": "Body",
+        "brand": "Tata",
+        "quantity": 6,
+        "purchasePrice": 1500,
+        "price": 2400,
+        "vehicleType": "Truck"
+    },
+    {
+        "name": "Heavy Duty Tyre 10.00-20",
+        "category": "Body",
+        "brand": "JK Tyre",
+        "quantity": 10,
+        "purchasePrice": 18000,
+        "price": 24000,
+        "vehicleType": "Truck"
+    },
+    {
+        "name": "Clutch Plate 380mm",
+        "category": "Body",
+        "brand": "Valeo",
+        "quantity": 5,
+        "purchasePrice": 4500,
+        "price": 7000,
+        "vehicleType": "Truck"
+    },
+    {
+        "name": "U-Joint Cross",
+        "category": "Body",
+        "brand": "Spicer",
+        "quantity": 12,
+        "purchasePrice": 800,
+        "price": 1400,
+        "vehicleType": "Truck"
+    },
+    {
+        "name": "Brake Drum (Rear)",
+        "category": "Body",
+        "brand": "Knorr",
+        "quantity": 4,
+        "purchasePrice": 3500,
+        "price": 5500,
+        "vehicleType": "Truck"
+    }
+]
