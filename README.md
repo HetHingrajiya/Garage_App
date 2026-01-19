@@ -171,42 +171,5 @@ lib/
 
 ---
 
-## 5. 🆘 Troubleshooting Guide
-
-### 🔴 Firestore Connection Error
-**Symptoms:** Infinite loading spinner or `UNAVAILABLE` error.
-**Fixes:**
-1.  **Check Internet:** Ensure the device has active WiFi/Data.
-2.  **Emulator DNS:** on Android Emulator, run `flutter clean` then restart with `emulator -dns-server 8.8.8.8`.
-3.  **Security Rules:** Check Firebase Console Rules tab. Standard rule:
-    ```javascript
-    allow read, write: if request.auth != null;
-    ```
-
-### 🔨 Build Errors & Fixes
-*   **"Version Mismatch"**: Run `flutter pub upgrade`.
-*   **"CocoaPods Error" (iOS)**: `cd ios && pod install && cd ..`
-*   **"Async Gap Warning"**: Ensure `if (mounted)` checks are present before using `context` after an `await`.
-
----
-
-## 6. 📊 Code Quality & Maintenance
-
-### Recent Optimizations (Jan 18, 2026)
-We conducted a massive code cleanup sprint:
-*   ✅ **Fixed 52 Deprecations:** Migrated `withOpacity` to `withValues`.
-*   ✅ **Secured Logging:** Replaced 31 `print()` calls with `debugPrint()`.
-*   ✅ **UI Polish:** Modernized Radio buttons in Settings.
-*   ✅ **Bug Fixes:** Resolved 7 async context gaps.
-
-### Running Tests
-To ensure system stability, run the test suite before every deployment:
-```bash
-flutter test
-```
-*Current Status: All tests passing.*
-
----
-
 **End of Documentation**  
 *For further assistance, please contact the development team lead.*
