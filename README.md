@@ -1,6 +1,6 @@
 # 📘 AutoCare Pro - Master Project Manual
 
-**Version 1.0.0** | **Last Updated:** January 18, 2026
+**Version 1.0.0** | **Last Updated:** March 08, 2026
 
 Welcome to the **AutoCare Pro (Garage App)** documentation hub. This manual is the "Single Source of Truth" for the entire project, covering everything from initial setup and architecture to daily operations and troubleshooting.
 
@@ -31,6 +31,7 @@ Welcome to the **AutoCare Pro (Garage App)** documentation hub. This manual is t
 6.  **[Code Quality & Maintenance](#6-code-quality--maintenance)**
     *   Recent Optimizations
     *   Linting & Testing
+7.  **[Downloads](#7-downloads)**
 
 ---
 
@@ -192,12 +193,13 @@ lib/
 
 ## 6. 📊 Code Quality & Maintenance
 
-### Recent Optimizations (Jan 18, 2026)
-We conducted a massive code cleanup sprint:
+### Recent Optimizations (March 08, 2026)
+We conducted a massive UI and functionality overhaul:
+*   ✅ **Neumorphic Design:** Implemented a premium, soft-UI design system across all screens (Light & Dark modes).
+*   ✅ **Role-Based Access Control:** Refined Mechanic role permissions to ensure data privacy and workflow focus.
 *   ✅ **Fixed 52 Deprecations:** Migrated `withOpacity` to `withValues`.
 *   ✅ **Secured Logging:** Replaced 31 `print()` calls with `debugPrint()`.
-*   ✅ **UI Polish:** Modernized Radio buttons in Settings.
-*   ✅ **Bug Fixes:** Resolved 7 async context gaps.
+*   ✅ **Bug Fixes:** Resolved 7 async context gaps and refined data filtering.
 
 ### Running Tests
 To ensure system stability, run the test suite before every deployment:
@@ -205,6 +207,16 @@ To ensure system stability, run the test suite before every deployment:
 flutter test
 ```
 *Current Status: All tests passing.*
+
+---
+
+## 7. 📥 Downloads
+
+### 📱 Android Release
+You can download the latest production-ready APK for Android here:
+
+*   **[Download AutoCare Pro APK](file:///e:/Garage_App/build/app/outputs/flutter-apk/app-release.apk)**  
+    *(Version 1.0.0 - Stable Build)*
 
 ---
 
