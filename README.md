@@ -215,7 +215,7 @@ flutter test
 ### 📱 Android Release
 You can download the latest production-ready APK for Android here:
 
-*   **[Download AutoCare Pro APK](file:///e:/Garage_App/build/app/outputs/flutter-apk/app-release.apk)**  
+*   **[Download AutoCare Pro APK](Garage_App/apk/app-release.apk)**  
     *(Version 1.0.0 - Stable Build)*
 
 ---
