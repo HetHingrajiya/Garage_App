@@ -1,7 +1,7 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:autocare_pro/data/repositories/auth_repository.dart';
+import 'package:autocare_pro/data/models/user_model.dart';
 import 'package:autocare_pro/data/models/mechanic_model.dart';
 import 'package:autocare_pro/presentation/screens/auth/login_screen.dart';
 import 'package:autocare_pro/presentation/screens/customers/add_customer_screen.dart';
@@ -10,10 +10,12 @@ import 'package:autocare_pro/presentation/screens/dashboard/dashboard_screen.dar
 import 'package:autocare_pro/presentation/screens/job_cards/add_job_card_screen.dart';
 import 'package:autocare_pro/presentation/screens/job_cards/job_card_list_screen.dart';
 import 'package:autocare_pro/presentation/screens/vehicles/vehicle_list_screen.dart';
+import 'package:autocare_pro/presentation/screens/vehicles/add_vehicle_screen.dart';
+import 'package:autocare_pro/data/models/customer_model.dart';
 import 'package:autocare_pro/presentation/screens/settings/settings_screen.dart';
 import 'package:autocare_pro/presentation/screens/inventory/inventory_list_screen.dart';
 import 'package:autocare_pro/presentation/screens/mechanics/mechanics_list_screen.dart';
-import 'package:autocare_pro/presentation/screens/mechanics/add_mechanic_screen.dart';
+import 'package:autocare_pro/presentation/screens/mechanics/mechanic_detail_screen.dart';
 import 'package:autocare_pro/presentation/screens/admin/add_user_screen.dart';
 import 'package:autocare_pro/presentation/screens/admin/admin_booking_list_screen.dart';
 
@@ -108,9 +110,10 @@ final routerProvider = Provider<GoRouter>((ref) {
         routes: [
           GoRoute(
             path: 'add',
-            builder: (context, state) => const Scaffold(
-              body: Center(child: Text("Add Vehicle Placeholder")),
-            ),
+            builder: (context, state) {
+              final customer = state.extra as Customer?;
+              return AddVehicleScreen(preSelectedCustomer: customer);
+            },
           ),
         ],
       ),
@@ -130,7 +133,28 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: 'add',
             builder: (context, state) {
               final mechanic = state.extra as MechanicModel?;
-              return AddMechanicScreen(mechanicToEdit: mechanic);
+              UserModel? user;
+              if (mechanic != null) {
+                user = UserModel(
+                  id: mechanic.id,
+                  email: mechanic.email,
+                  name: mechanic.name,
+                  role: 'mechanic',
+                  mobile: mechanic.mobile,
+                  status: mechanic.status,
+                  createdAt: mechanic.createdAt,
+                  skills: mechanic.skills,
+                  experience: mechanic.experience,
+                );
+              }
+              return AddUserScreen(userToEdit: user);
+            },
+          ),
+          GoRoute(
+            path: ':id',
+            builder: (context, state) {
+              final mechanic = state.extra as MechanicModel;
+              return MechanicDetailScreen(mechanic: mechanic);
             },
           ),
         ],

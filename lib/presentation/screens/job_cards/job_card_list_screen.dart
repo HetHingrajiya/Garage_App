@@ -1,3 +1,4 @@
+import 'package:autocare_pro/presentation/widgets/common/neumorphic_container.dart';
 import 'package:autocare_pro/core/permissions/permissions.dart';
 import 'package:autocare_pro/data/models/job_card_model.dart';
 import 'package:autocare_pro/data/repositories/auth_repository.dart';
@@ -160,8 +161,9 @@ class JobCardListScreen extends ConsumerWidget {
             itemCount: jobs.length,
             itemBuilder: (context, index) {
               final job = jobs[index];
-              return Card(
-                elevation: 1, // Subtle card
+              return NeumorphicContainer(
+                margin: const EdgeInsets.symmetric(vertical: 10),
+                padding: const EdgeInsets.all(4),
                 child: ListTile(
                   leading: CircleAvatar(
                     backgroundColor: _getStatusColor(job.status),

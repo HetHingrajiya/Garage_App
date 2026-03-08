@@ -7,6 +7,7 @@ import 'package:autocare_pro/data/repositories/garage_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:autocare_pro/core/providers/theme_provider.dart';
 
 final settingsProvider = FutureProvider<GarageSettings>((ref) {
   return ref.watch(garageRepositoryProvider).getSettings();
@@ -30,7 +31,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
   final _gstController = TextEditingController();
 
   bool _gstEnabled = false;
-  String _themeMode = 'system';
+  // Theme mode is now handled by provider
   bool _isLoading = false;
 
   @override
@@ -52,7 +53,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
         _contactController.text = settings.contactNumber;
         _gstController.text = settings.gstPercentage.toString();
         _gstEnabled = settings.gstEnabled;
-        _themeMode = settings.themeMode;
+        // Theme is initialized by provider
       }
     });
 
@@ -162,30 +163,42 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
           const ListTile(title: Text('App Theme')),
           ListTile(
             title: const Text('System Default'),
-            leading: Radio<String>(
-              value: 'system',
-              groupValue: _themeMode,
-              onChanged: (val) => setState(() => _themeMode = val!),
+            leading: Radio<ThemeMode>(
+              value: ThemeMode.system,
+              groupValue: ref.watch(themeModeProvider),
+              onChanged: (val) {
+                ref.read(themeModeProvider.notifier).setTheme('system');
+              },
             ),
-            onTap: () => setState(() => _themeMode = 'system'),
+            onTap: () {
+              ref.read(themeModeProvider.notifier).setTheme('system');
+            },
           ),
           ListTile(
             title: const Text('Light'),
-            leading: Radio<String>(
-              value: 'light',
-              groupValue: _themeMode,
-              onChanged: (val) => setState(() => _themeMode = val!),
+            leading: Radio<ThemeMode>(
+              value: ThemeMode.light,
+              groupValue: ref.watch(themeModeProvider),
+              onChanged: (val) {
+                ref.read(themeModeProvider.notifier).setTheme('light');
+              },
             ),
-            onTap: () => setState(() => _themeMode = 'light'),
+            onTap: () {
+              ref.read(themeModeProvider.notifier).setTheme('light');
+            },
           ),
           ListTile(
             title: const Text('Dark'),
-            leading: Radio<String>(
-              value: 'dark',
-              groupValue: _themeMode,
-              onChanged: (val) => setState(() => _themeMode = val!),
+            leading: Radio<ThemeMode>(
+              value: ThemeMode.dark,
+              groupValue: ref.watch(themeModeProvider),
+              onChanged: (val) {
+                ref.read(themeModeProvider.notifier).setTheme('dark');
+              },
             ),
-            onTap: () => setState(() => _themeMode = 'dark'),
+            onTap: () {
+              ref.read(themeModeProvider.notifier).setTheme('dark');
+            },
           ),
           const Divider(),
           // Data Management Section
@@ -282,7 +295,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
         contactNumber: _contactController.text.trim(),
         gstEnabled: _gstEnabled,
         gstPercentage: double.tryParse(_gstController.text.trim()) ?? 0.0,
-        themeMode: _themeMode,
+        themeMode: ref.read(themeModeProvider).name, // Persist current theme
       );
 
       await ref.read(garageRepositoryProvider).updateSettings(newSettings);

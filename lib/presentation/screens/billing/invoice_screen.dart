@@ -285,7 +285,7 @@ class _InvoiceScreenState extends ConsumerState<InvoiceScreen> {
                         style: pw.TextStyle(font: font),
                       ),
                       pw.Text(
-                        '${(item.price * item.quantity).toStringAsFixed(2)}',
+                        (item.price * item.quantity).toStringAsFixed(2),
                         style: pw.TextStyle(font: font),
                       ),
                     ],

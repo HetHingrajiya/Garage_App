@@ -1,4 +1,5 @@
 import 'package:autocare_pro/data/repositories/garage_repository.dart';
+import 'package:autocare_pro/presentation/widgets/common/neumorphic_container.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -220,73 +221,143 @@ class InventoryReportTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final statsAsync = ref.watch(inventoryStatsProvider);
+    final theme = Theme.of(context);
 
     return Padding(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       child: statsAsync.when(
         data: (stats) {
           final totalValue = stats['totalValue'] ?? 0;
           final lowStock = stats['lowStockCount'] ?? 0;
-          final totalItems = stats['totalItems'] ?? 0;
 
           return Column(
             children: [
-              Card(
-                color: Colors.teal.shade50,
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
+              // Total Value Card with high contrast
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      theme.colorScheme.primary,
+                      theme.colorScheme.secondary,
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.25),
+                      blurRadius: 15,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    Text(
+                      'TOTAL INVENTORY VALUE',
+                      style: theme.textTheme.labelLarge?.copyWith(
+                        color: Colors.white.withOpacity(0.8),
+                        letterSpacing: 1.5,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      '₹${totalValue.toStringAsFixed(2)}',
+                      style: theme.textTheme.headlineLarge?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 32,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // Stock Health Grid
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildInfoCard(
+                      'In Stock',
+                      '${stats['inStockCount'] ?? 0}',
+                      Colors.green,
+                      Icons.check_circle_outline,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildInfoCard(
+                      'Low Stock',
+                      '$lowStock',
+                      Colors.orange,
+                      Icons.warning_amber_rounded,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildInfoCard(
+                      'Out of Stock',
+                      '${stats['outOfStockCount'] ?? 0}',
+                      Colors.red,
+                      Icons.error_outline_rounded,
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 32),
+              
+              // Stock Health Visualization
+              Text(
+                'Stock Health Distribution',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 16),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: SizedBox(
+                  height: 12,
+                  child: Row(
                     children: [
-                      const Text(
-                        'Total Inventory Value',
-                        style: TextStyle(fontSize: 16),
-                      ),
-                      Text(
-                        '₹${totalValue.toStringAsFixed(2)}',
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.teal,
+                      if (stats['inStockCount'] != 0)
+                        Expanded(
+                          flex: stats['inStockCount'],
+                          child: Container(color: Colors.green),
                         ),
-                      ),
+                      if (lowStock != 0)
+                        Expanded(
+                          flex: lowStock,
+                          child: Container(color: Colors.orange),
+                        ),
+                      if (stats['outOfStockCount'] != 0)
+                        Expanded(
+                          flex: stats['outOfStockCount'],
+                          child: Container(color: Colors.red),
+                        ),
                     ],
                   ),
                 ),
               ),
               const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildInfoCard(
-                      'Total Items',
-                      '$totalItems',
-                      Colors.blue,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _buildInfoCard(
-                      'Low Stock Alerts',
-                      '$lowStock',
-                      Colors.red,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              const Text(
-                'Stock Health',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              // Placeholder for a chart or list of fast moving items
-              const Expanded(
-                child: Center(
-                  child: Text(
-                    'Detailed stock analysis available in Inventory List.',
-                    style: TextStyle(color: Colors.grey),
+              
+              const Spacer(),
+              Center(
+                child: Text(
+                  'Detailed stock analysis available in Inventory List.',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurface.withOpacity(0.5),
+                    fontStyle: FontStyle.italic,
                   ),
                 ),
               ),
+              const SizedBox(height: 16),
             ],
           );
         },
@@ -296,24 +367,32 @@ class InventoryReportTab extends ConsumerWidget {
     );
   }
 
-  Widget _buildInfoCard(String title, String value, Color color) {
-    return Card(
-      elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
+  Widget _buildInfoCard(String title, String value, Color color, IconData icon) {
+    return NeumorphicContainer(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        children: [
+          Icon(icon, color: color, size: 24),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: color,
             ),
-            Text(title, style: const TextStyle(fontSize: 12)),
-          ],
-        ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 10,
+              color: color.withOpacity(0.8),
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
       ),
     );
   }

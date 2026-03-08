@@ -5,6 +5,9 @@ import 'package:intl/intl.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:uuid/uuid.dart';
 import 'package:autocare_pro/data/repositories/auth_repository.dart';
+import 'package:autocare_pro/data/repositories/user_repository.dart';
+import 'package:autocare_pro/data/repositories/garage_repository.dart';
+import 'package:autocare_pro/data/models/notification_model.dart';
 import 'package:autocare_pro/core/constants/service_categories.dart';
 import 'package:autocare_pro/presentation/widgets/booking_confirmation_dialog.dart';
 
@@ -178,6 +181,35 @@ class _BookServiceScreenState extends ConsumerState<BookServiceScreen> {
           .collection('job_cards')
           .doc(jobCardId)
           .set(jobCardData);
+
+      // --- ADD NOTIFICATIONS ---
+      final garageRepo = ref.read(garageRepositoryProvider);
+      final userRepo = ref.read(userRepositoryProvider);
+
+      // 1. Notify Customer
+      final customerNotif = GarageNotification(
+        id: const Uuid().v4(),
+        userId: user.uid,
+        title: 'Booking Confirmed!',
+        message: 'Your service #$jobNo has been scheduled.',
+        type: 'Status',
+        date: DateTime.now(),
+      );
+      await garageRepo.createNotification(customerNotif);
+
+      // 2. Notify all Admins
+      final admins = await userRepo.getAllAdmins();
+      for (final admin in admins) {
+        final adminNotif = GarageNotification(
+          id: const Uuid().v4(),
+          userId: admin.id,
+          title: 'New Online Booking',
+          message: 'Job #$jobNo received from ${user.displayName ?? 'Customer'}',
+          type: 'Status',
+          date: DateTime.now(),
+        );
+        await garageRepo.createNotification(adminNotif);
+      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

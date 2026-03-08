@@ -44,10 +44,11 @@ class GarageRepository {
   }
 
   Future<void> addCustomer(Customer customer) async {
-    // Check for duplicate mobile
+    // Check for duplicate mobile among ACTIVE customers only
     final existingDocs = await _firestore
         .collection('customers')
         .where('mobile', isEqualTo: customer.mobile)
+        .where('status', isEqualTo: 'Active')
         .get();
 
     if (existingDocs.docs.isNotEmpty) {
@@ -158,10 +159,11 @@ class GarageRepository {
     Customer customer,
     Vehicle vehicle,
   ) async {
-    // Check for duplicate mobile
+    // Check for duplicate mobile among ACTIVE customers only
     final existingCustomerDocs = await _firestore
         .collection('customers')
         .where('mobile', isEqualTo: customer.mobile)
+        .where('status', isEqualTo: 'Active')
         .get();
 
     if (existingCustomerDocs.docs.isNotEmpty) {
@@ -250,6 +252,14 @@ class GarageRepository {
         });
   }
 
+  Stream<JobCard> getJobCard(String jobId) {
+    return _firestore
+        .collection('job_cards')
+        .doc(jobId)
+        .snapshots()
+        .map((doc) => JobCard.fromMap(doc.data()!, doc.id));
+  }
+
   Future<void> createJobCard(JobCard jobCard) async {
     // Generate ID or use provided.
     // Ideally we might want to check for 'jobNumber' uniqueness here if generated locally.
@@ -291,9 +301,83 @@ class GarageRepository {
     });
   }
 
-  Future<void> addPartToJob(String jobId, JobPart part) async {
+  Future<void> removeServiceFromJob(String jobId, JobService service) async {
     await _firestore.collection('job_cards').doc(jobId).update({
-      'selectedParts': FieldValue.arrayUnion([part.toMap()]),
+      'selectedServices': FieldValue.arrayRemove([service.toMap()]),
+    });
+  }
+
+  Future<void> addPartToJob(String jobId, JobPart part) async {
+    final inventoryRef = _firestore.collection('inventory').doc(part.id);
+    final jobRef = _firestore.collection('job_cards').doc(jobId);
+
+    await _firestore.runTransaction((transaction) async {
+      // 1. Get current stock
+      final inventoryDoc = await transaction.get(inventoryRef);
+      if (!inventoryDoc.exists) {
+        throw Exception('Item not found in inventory.');
+      }
+
+      final inventoryData = inventoryDoc.data()!;
+      final currentQty = (inventoryData['quantity'] as num).toInt();
+      final lowStockThreshold = (inventoryData['lowStockThreshold'] as num).toInt();
+
+      if (currentQty < part.quantity) {
+        throw Exception('Insufficient stock for ${part.name}. Available: $currentQty');
+      }
+
+      // 2. Add part to job card
+      transaction.update(jobRef, {
+        'selectedParts': FieldValue.arrayUnion([part.toMap()]),
+      });
+
+      // 3. Deduct stock from inventory
+      final newQty = currentQty - part.quantity;
+      String newStatus = newQty == 0
+          ? 'Out of Stock'
+          : (newQty <= lowStockThreshold ? 'Low Stock' : 'In Stock');
+
+      transaction.update(inventoryRef, {
+        'quantity': newQty,
+        'status': newStatus,
+      });
+    });
+  }
+
+  Future<void> removePartFromJob(String jobId, JobPart part) async {
+    final inventoryRef = _firestore.collection('inventory').doc(part.id);
+    final jobRef = _firestore.collection('job_cards').doc(jobId);
+
+    await _firestore.runTransaction((transaction) async {
+      // 1. Get current stock
+      final inventoryDoc = await transaction.get(inventoryRef);
+      if (!inventoryDoc.exists) {
+        // If part no longer exists in inventory, we just remove it from job
+        transaction.update(jobRef, {
+          'selectedParts': FieldValue.arrayRemove([part.toMap()]),
+        });
+        return;
+      }
+
+      final inventoryData = inventoryDoc.data()!;
+      final currentQty = (inventoryData['quantity'] as num).toInt();
+      final lowStockThreshold = (inventoryData['lowStockThreshold'] as num).toInt();
+
+      // 2. Remove part from job card
+      transaction.update(jobRef, {
+        'selectedParts': FieldValue.arrayRemove([part.toMap()]),
+      });
+
+      // 3. Restore stock in inventory
+      final newQty = currentQty + part.quantity;
+      String newStatus = newQty == 0
+          ? 'Out of Stock'
+          : (newQty <= lowStockThreshold ? 'Low Stock' : 'In Stock');
+
+      transaction.update(inventoryRef, {
+        'quantity': newQty,
+        'status': newStatus,
+      });
     });
   }
 
@@ -536,7 +620,7 @@ class GarageRepository {
       userId: customerId,
       title: 'Booking Confirmed',
       message:
-          'Your service appointment #${jobNo} has been confirmed. Mechanic assigned.',
+          'Your service appointment #$jobNo has been confirmed. Mechanic assigned.',
       type: 'Status',
       date: DateTime.now(),
     );
@@ -615,17 +699,25 @@ class GarageRepository {
     final qs = await _firestore.collection('inventory').get();
     double totalValue = 0;
     int lowStockCount = 0;
+    int outOfStockCount = 0;
+    int inStockCount = 0;
 
     for (var doc in qs.docs) {
       final item = InventoryItem.fromMap(doc.data(), doc.id);
       totalValue += (item.purchasePrice * item.quantity);
-      if (item.quantity <= item.lowStockThreshold) {
+      if (item.quantity == 0) {
+        outOfStockCount++;
+      } else if (item.quantity <= item.lowStockThreshold) {
         lowStockCount++;
+      } else {
+        inStockCount++;
       }
     }
     return {
       'totalValue': totalValue,
       'lowStockCount': lowStockCount,
+      'outOfStockCount': outOfStockCount,
+      'inStockCount': inStockCount,
       'totalItems': qs.docs.length,
     };
   }

@@ -40,4 +40,23 @@ class GarageSettings {
       themeMode: map['themeMode'] ?? 'system',
     );
   }
+  GarageSettings copyWith({
+    String? garageName,
+    String? address,
+    String? contactNumber,
+    bool? gstEnabled,
+    double? gstPercentage,
+    String? currencySymbol,
+    String? themeMode,
+  }) {
+    return GarageSettings(
+      garageName: garageName ?? this.garageName,
+      address: address ?? this.address,
+      contactNumber: contactNumber ?? this.contactNumber,
+      gstEnabled: gstEnabled ?? this.gstEnabled,
+      gstPercentage: gstPercentage ?? this.gstPercentage,
+      currencySymbol: currencySymbol ?? this.currencySymbol,
+      themeMode: themeMode ?? this.themeMode,
+    );
+  }
 }

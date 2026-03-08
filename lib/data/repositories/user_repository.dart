@@ -1,4 +1,5 @@
 import 'package:autocare_pro/data/models/user_model.dart';
+import 'package:autocare_pro/data/repositories/auth_repository.dart';
 import 'package:autocare_pro/data/models/admin_model.dart';
 import 'package:autocare_pro/data/models/customer_model.dart';
 import 'package:autocare_pro/data/models/mechanic_model.dart';
@@ -168,4 +169,13 @@ class UserRepository {
 
 final userRepositoryProvider = Provider<UserRepository>((ref) {
   return UserRepository(FirebaseFirestore.instance);
+});
+
+final currentUserProfileProvider = FutureProvider<BaseUserModel?>((ref) async {
+  final user = ref.watch(authStateProvider).value;
+  final role = ref.watch(currentUserRoleProvider).value;
+
+  if (user == null || role == null) return null;
+
+  return ref.read(userRepositoryProvider).getUserByRole(user.uid, role);
 });

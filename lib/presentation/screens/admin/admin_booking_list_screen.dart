@@ -380,7 +380,7 @@ class _AcceptBookingDialogState extends ConsumerState<_AcceptBookingDialog> {
                 }
 
                 return DropdownButtonFormField<String>(
-                  value: _selectedMechanicId,
+                  initialValue: _selectedMechanicId,
                   decoration: const InputDecoration(
                     labelText: 'Select Mechanic',
                     border: OutlineInputBorder(),

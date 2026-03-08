@@ -4,16 +4,35 @@ import 'package:autocare_pro/data/repositories/garage_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 // Provider to get the current logged-in customer's details
 final currentCustomerProfileProvider = FutureProvider<Customer?>((ref) async {
   final user = ref.watch(authStateProvider).value;
   if (user == null) return null;
-
-  // Fetch full customer details
-  // Note: We might need a direct 'getByAuthId' or just use the ID if they match
   return await ref.read(garageRepositoryProvider).getCustomer(user.uid);
 });
+
+// Modern Notifiers for notification settings
+class NotificationSettingsNotifier extends Notifier<bool> {
+  final bool defaultValue;
+  NotificationSettingsNotifier(this.defaultValue);
+
+  @override
+  bool build() => defaultValue;
+
+  void toggle(bool value) => state = value;
+}
+
+final jobUpdatesProvider = NotifierProvider<NotificationSettingsNotifier, bool>(
+  () => NotificationSettingsNotifier(true),
+);
+final promotionsProvider = NotifierProvider<NotificationSettingsNotifier, bool>(
+  () => NotificationSettingsNotifier(false),
+);
+final appNewsProvider = NotifierProvider<NotificationSettingsNotifier, bool>(
+  () => NotificationSettingsNotifier(true),
+);
 
 class CustomerProfileScreen extends ConsumerWidget {
   const CustomerProfileScreen({super.key});
@@ -310,8 +329,12 @@ class CustomerProfileScreen extends ConsumerWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) {
+      builder: (context) => Consumer(
+        builder: (context, ref, child) {
+          final jobUpdates = ref.watch(jobUpdatesProvider);
+          final promotions = ref.watch(promotionsProvider);
+          final appNews = ref.watch(appNewsProvider);
+
           return Padding(
             padding: const EdgeInsets.all(20),
             child: Column(
@@ -337,23 +360,31 @@ class CustomerProfileScreen extends ConsumerWidget {
                 _buildSwitchTile(
                   'Job Updates',
                   'Get real-time updates on your vehicle service',
-                  true,
+                  jobUpdates,
+                  (val) => ref.read(jobUpdatesProvider.notifier).toggle(val),
                 ),
                 _buildSwitchTile(
                   'Promotions',
                   'Receive offers and discounts',
-                  false,
+                  promotions,
+                  (val) => ref.read(promotionsProvider.notifier).toggle(val),
                 ),
                 _buildSwitchTile(
                   'App News',
                   'New features and system updates',
-                  true,
+                  appNews,
+                  (val) => ref.read(appNewsProvider.notifier).toggle(val),
                 ),
                 const SizedBox(height: 20),
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: () {
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Preferences updated')),
+                      );
+                    },
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       shape: RoundedRectangleBorder(
@@ -371,7 +402,12 @@ class CustomerProfileScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildSwitchTile(String title, String subtitle, bool value) {
+  Widget _buildSwitchTile(
+    String title,
+    String subtitle,
+    bool value,
+    ValueChanged<bool> onChanged,
+  ) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Row(
@@ -397,8 +433,8 @@ class CustomerProfileScreen extends ConsumerWidget {
           ),
           Switch(
             value: value,
-            onChanged: (val) {}, // TODO: Implement state management
-            activeThumbColor: Colors.blueAccent, // Generic blue or use theme
+            onChanged: onChanged,
+            activeThumbColor: Colors.blueAccent,
           ),
         ],
       ),
@@ -492,14 +528,31 @@ class CustomerProfileScreen extends ConsumerWidget {
               leading: const Icon(Icons.phone, color: Colors.green),
               title: const Text('Call Support'),
               subtitle: const Text('+91 98765 43210'),
-              onTap: () {}, // TODO: Implement launchUrl
+              onTap: () async {
+                final Uri launchUri = Uri(
+                  scheme: 'tel',
+                  path: '+919876543210',
+                );
+                if (await canLaunchUrl(launchUri)) {
+                  await launchUrl(launchUri);
+                }
+              },
               contentPadding: EdgeInsets.zero,
             ),
             ListTile(
               leading: const Icon(Icons.email, color: Colors.redAccent),
               title: const Text('Email Us'),
               subtitle: const Text('support@autocarepro.com'),
-              onTap: () {}, // TODO: Implement launchUrl
+              onTap: () async {
+                final Uri launchUri = Uri(
+                  scheme: 'mailto',
+                  path: 'support@autocarepro.com',
+                  query: 'subject=Support Request - AutoCare Pro',
+                );
+                if (await canLaunchUrl(launchUri)) {
+                  await launchUrl(launchUri);
+                }
+              },
               contentPadding: EdgeInsets.zero,
             ),
           ],

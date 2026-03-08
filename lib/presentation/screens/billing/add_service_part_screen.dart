@@ -79,7 +79,9 @@ class _AddServicePartScreenState extends ConsumerState<AddServicePartScreen>
   }
 
   Future<void> _addPart(InventoryItem item) async {
-    final qty = int.tryParse(_partQtyController.text) ?? 1;
+    final qtyText = _partQtyController.text;
+    if (qtyText.isEmpty) return;
+    final qty = int.tryParse(qtyText) ?? 1;
 
     final part = JobPart(
       id: item.id,
@@ -88,15 +90,28 @@ class _AddServicePartScreenState extends ConsumerState<AddServicePartScreen>
       quantity: qty,
     );
 
-    await ref
-        .read(garageRepositoryProvider)
-        .addPartToJob(widget.jobCard.id, part);
+    try {
+      await ref
+          .read(garageRepositoryProvider)
+          .addPartToJob(widget.jobCard.id, part);
 
-    if (mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Part Added')));
-      Navigator.pop(context);
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Part Added')));
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString().replaceAll('Exception: ', '')}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -224,12 +239,16 @@ class _AddServicePartScreenState extends ConsumerState<AddServicePartScreen>
                 child: Column(
                   children: [
                     DropdownButtonFormField<String>(
+                      isExpanded: true,
                       initialValue: _selectedPartId,
                       items: parts
                           .map(
                             (p) => DropdownMenuItem(
                               value: p.id,
-                              child: Text('${p.name} (₹${p.price})'),
+                              child: Text(
+                                '${p.name} (Stock: ${p.quantity}) - ₹${p.price}',
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
                           )
                           .toList(),
